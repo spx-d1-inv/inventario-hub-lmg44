@@ -1381,12 +1381,18 @@
       const statusBox = document.getElementById('cloud-sync-status');
 
       try {
-        if (typeof __firebase_config === 'undefined' || !__firebase_config) {
-          if (statusLabel) statusLabel.textContent = 'Modo Local Ativo';
-          return;
-        }
+        const embeddedFirebaseConfig = {
+          apiKey: "AIzaSyAlhwPvzJlNlcPH9u1n3tqRhTZZgoekGb4",
+          authDomain: "inventario-hub-lmg44.firebaseapp.com",
+          projectId: "inventario-hub-lmg44",
+          storageBucket: "inventario-hub-lmg44.firebasestorage.app",
+          messagingSenderId: "481483413009",
+          appId: "1:481483413009:web:860ef0dd919d998f6203b0"
+        };
 
-        const firebaseConfig = JSON.parse(__firebase_config);
+        const firebaseConfig = (typeof __firebase_config !== 'undefined' && __firebase_config)
+          ? JSON.parse(__firebase_config)
+          : embeddedFirebaseConfig;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'hub-lmg-44-default';
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
