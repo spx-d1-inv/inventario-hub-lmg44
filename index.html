@@ -1,0 +1,3615 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controle de Inventário - HUB LMG 44</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js para Gráficos do Dashboard Inicial -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- SheetJS (XLSX) para Exportação Excel com Abas Nomeadas -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #020617;
+      color: #f1f5f9;
+    }
+    /* Custom scrollbar for clean tables */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-toast {
+      animation: slideIn 0.25s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-4 right-4 z-[60] flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+  <!-- =================================================================== -->
+  <!-- TELA DE LOGIN / CADASTRO DE OPERADOR                                -->
+  <!-- =================================================================== -->
+  <div id="login-screen" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4 overflow-y-auto">
+    <!-- Padrão de Marcas d'Água Diagonais SPX Express em Alta Resolução no Plano de Fundo -->
+    <div aria-hidden="true" class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+      <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
+        <defs>
+          <symbol id="spx-watermark-unit" viewBox="0 0 640 256">
+            <!-- Letra S vetorial -->
+            <path fill="#ee4d2d" d="M 194 48 L 162 66 C 154 50, 141 42, 122 42 C 102 42, 90 50, 88 62 C 86 74, 97 80, 124 87 C 166 98, 189 115, 184 148 C 178 185, 144 206, 100 206 C 62 206, 39 189, 32 162 L 66 144 C 72 162, 86 172, 106 172 C 128 172, 142 163, 144 150 C 146 138, 136 131, 108 124 C 68 114, 46 97, 51 64 C 56 28, 88 8, 128 8 C 162 8, 185 23, 194 48 Z" />
+            <!-- Letra P vetorial -->
+            <path fill="#ee4d2d" fill-rule="evenodd" d="M 230 12 L 314 12 C 356 12, 376 36, 370 74 C 364 112, 336 134, 292 134 L 246 134 L 233 204 L 194 204 Z M 262 46 L 252 100 L 292 100 C 314 100, 328 89, 331 73 C 334 57, 323 46, 302 46 Z" />
+            <!-- Letra X vetorial -->
+            <polygon points="402,12 448,12 548,204 502,204" fill="#ee4d2d" />
+            <polygon points="538,12 584,12 402,252 356,252" fill="#ee4d2d" />
+            <!-- Barras inclinadas inferiores -->
+            <polygon points="32,220 82,220 58,252 8,252" fill="#ee4d2d" />
+            <polygon points="96,220 172,220 148,252 72,252" fill="#ee4d2d" />
+            <polygon points="186,220 348,220 324,252 162,252" fill="#ee4d2d" />
+            <!-- Texto EXPRESS com largura fixa dentro do viewBox -->
+            <text x="424" y="251" fill="#ee4d2d" font-family="'Inter', Arial, sans-serif" font-weight="900" font-style="italic" font-size="44" letter-spacing="1" textLength="204" lengthAdjust="spacingAndGlyphs">EXPRESS</text>
+          </symbol>
+          <pattern id="spx-diagonal-watermarks" width="640" height="420" patternUnits="userSpaceOnUse" patternTransform="rotate(-24)">
+            <use href="#spx-watermark-unit" x="38" y="56" width="244" height="98" opacity="0.11" />
+            <use href="#spx-watermark-unit" x="358" y="266" width="244" height="98" opacity="0.11" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#spx-diagonal-watermarks)" />
+      </svg>
+    </div>
+
+    <div class="relative z-10 bg-slate-900/90 backdrop-blur-md w-full max-w-md rounded-2xl p-6 sm:p-8 shadow-2xl border border-slate-800/90 my-auto">
+      <div class="flex flex-col items-center text-center mb-6">
+        <h1 class="text-lg sm:text-xl font-bold text-white tracking-tight">Controle de Inventário - HUB LMG 44</h1>
+        <p class="text-xs text-slate-400 mt-1">Autenticação obrigatória para acesso ao sistema</p>
+      </div>
+
+      <!-- Alternador Entrar / Cadastrar Operador -->
+      <div class="grid grid-cols-2 gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 mb-5">
+        <button type="button" id="tab-auth-login" onclick="switchAuthTab('login')" class="py-2 rounded-lg text-xs font-bold transition bg-orange-600 text-white shadow">
+          Entrar no Sistema
+        </button>
+        <button type="button" id="tab-auth-register" onclick="switchAuthTab('register')" class="py-2 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white">
+          Cadastrar Operador
+        </button>
+      </div>
+
+      <!-- FORMULÁRIO DE LOGIN -->
+      <form id="form-login" class="space-y-4">
+        <div>
+          <label for="login-username" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Usuário</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <i data-lucide="user" class="w-4 h-4"></i>
+            </div>
+            <input type="text" id="login-username" required autocomplete="username" placeholder="Digite seu usuário ou Ops ID" class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition" />
+          </div>
+        </div>
+
+        <div>
+          <label for="login-password" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Senha</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <i data-lucide="lock" class="w-4 h-4"></i>
+            </div>
+            <input type="password" id="login-password" required autocomplete="current-password" placeholder="Digite sua senha" class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition" />
+          </div>
+        </div>
+
+        <div id="login-error" class="hidden text-xs text-red-300 bg-red-950/90 border border-red-500/40 rounded-xl px-3.5 py-2.5 text-center font-medium">
+          Usuário ou senha inválidos. Verifique e tente novamente.
+        </div>
+
+        <button type="submit" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-3 rounded-xl shadow-md transition flex items-center justify-center gap-2 text-sm active:scale-95">
+          <i data-lucide="log-in" class="w-4 h-4"></i>
+          <span>Entrar no Sistema</span>
+        </button>
+      </form>
+
+      <!-- FORMULÁRIO DE CADASTRO DE OPERADOR -->
+      <form id="form-register-operator" class="hidden space-y-3.5">
+        <div>
+          <label for="reg-nome" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Nome Completo *</label>
+          <input type="text" id="reg-nome" required placeholder="Ex: João da Silva" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="reg-funcao" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Função *</label>
+            <select id="reg-funcao" required class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+              <option value="Aux. Logístico">Aux. Logístico</option>
+              <option value="Analista">Analista</option>
+              <option value="Líder">Líder</option>
+            </select>
+          </div>
+          <div>
+            <label for="reg-equipe" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Equipe *</label>
+            <select id="reg-equipe" required class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 transition">
+              <option value="FM">FM</option>
+              <option value="LM T1">LM T1</option>
+              <option value="LM T3">LM T3</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="reg-username" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+              Usuário de Acesso <span class="normal-case text-orange-400 font-bold">(Ops ID)</span> *
+            </label>
+            <input type="text" id="reg-username" required placeholder="Ex: Ops12345" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition" />
+          </div>
+          <div>
+            <label for="reg-password" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Senha de Acesso *</label>
+            <input type="password" id="reg-password" required placeholder="Crie uma senha" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition" />
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800">
+          <p class="text-[11px] font-bold text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+            <span>Validação do Administrador Obrigatória</span>
+          </p>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="reg-admin-user" class="block text-[11px] font-semibold text-slate-400 mb-1">Usuário Admin *</label>
+              <input type="text" id="reg-admin-user" required placeholder="Usuário admin" class="w-full px-3 py-2 bg-slate-950 border border-amber-500/40 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 transition" />
+            </div>
+            <div>
+              <label for="reg-admin-pass" class="block text-[11px] font-semibold text-slate-400 mb-1">Senha Admin *</label>
+              <input type="password" id="reg-admin-pass" required placeholder="Senha admin" class="w-full px-3 py-2 bg-slate-950 border border-amber-500/40 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500 transition" />
+            </div>
+          </div>
+        </div>
+
+        <div id="register-error" class="hidden text-xs text-red-300 bg-red-950/90 border border-red-500/40 rounded-xl px-3.5 py-2 text-center font-medium"></div>
+
+        <button type="submit" class="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-2.5 rounded-xl shadow-md transition flex items-center justify-center gap-2 text-sm active:scale-95">
+          <i data-lucide="user-plus" class="w-4 h-4"></i>
+          <span>Validar e Concluir Cadastro</span>
+        </button>
+      </form>
+
+      <p class="text-[11px] text-slate-500 text-center mt-5">
+        desenvolvido por Dian Ribeiro Ferreira
+      </p>
+    </div>
+  </div>
+
+  <!-- Header Superior -->
+  <header id="main-header" class="bg-slate-900/95 backdrop-blur border-b border-slate-800 sticky top-0 z-40 shadow-lg">
+    <div class="w-full px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3 min-w-0">
+        <!-- Botão Menu Mobile -->
+        <button
+          type="button"
+          onclick="toggleMobileSidebar()"
+          class="lg:hidden p-2 rounded-xl bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700 transition"
+          aria-label="Abrir menu de navegação"
+        >
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+
+        <div class="text-left min-w-0">
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm sm:text-lg font-bold tracking-tight text-white truncate">Controle de Inventário - HUB LMG 44</h1>
+            <span class="hidden md:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-500/15 text-orange-300 border border-orange-500/30 shrink-0">
+              Sistema Ativo
+            </span>
+          </div>
+          <p class="hidden sm:block text-xs text-slate-400 truncate">Gestão de Etiquetas, Ribbons e Insumos Operacionais • <span class="text-slate-300 font-medium">desenvolvido por Dian Ribeiro Ferreira</span></p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-end gap-2 sm:gap-2.5 ml-auto">
+        <div id="logged-user-badge" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-200 border border-slate-700">
+          <i data-lucide="user-check" class="w-3.5 h-3.5 text-orange-400"></i>
+          <span id="logged-user-name">Operador</span>
+        </div>
+        <div id="cloud-sync-status" class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="cloud-sync-label">Sincronizando Nuvem...</span>
+        </div>
+        <button
+          id="header-admin-btn"
+          onclick="openAdminPortal()"
+          class="inline-flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 shadow-sm transition active:scale-95"
+          title="Acessar painel administrativo"
+        >
+          <i data-lucide="shield-check" class="w-4 h-4"></i>
+          <span>Administrador</span>
+        </button>
+        <button onclick="exportToCSV()" class="inline-flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition active:scale-95">
+          <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Exportar Excel/CSV</span>
+          <span class="sm:hidden">CSV</span>
+        </button>
+        <button
+          type="button"
+          onclick="logoutSystem()"
+          title="Sair do sistema"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-red-600/15 hover:bg-red-600/30 text-red-300 border border-red-500/30 shadow-sm transition active:scale-95"
+        >
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Sair</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Modal de Autenticação de Administrador -->
+  <div id="admin-auth-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-slate-900 rounded-2xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-800 space-y-5">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="p-2.5 bg-sky-500/15 border border-sky-500/30 rounded-xl text-sky-400">
+            <i data-lucide="shield-check" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-white">Acesso Administrador</h3>
+            <p class="text-xs text-slate-400">HUB LMG 44 • Gestão de Catálogo e Banco</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeAdminAuthModal()" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-300 leading-relaxed">
+        Informe a senha de administrador para liberar o <strong class="text-white">cadastro de novos itens</strong> e a <strong class="text-white">edição direta do banco de dados</strong>.
+      </p>
+
+      <form id="form-admin-unlock" onsubmit="validarCodigoAdmin(event)" class="space-y-4">
+        <div>
+          <label for="input-admin-code" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+            Senha de Administrador *
+          </label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <i data-lucide="key-round" class="w-4 h-4"></i>
+            </div>
+            <input
+              type="password"
+              id="input-admin-code"
+              required
+              placeholder="Digite a senha do administrador"
+              class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition"
+            />
+          </div>
+          <p id="admin-code-error" class="hidden mt-1.5 text-xs font-semibold text-red-400 flex items-center gap-1">
+            <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+            <span>Senha de administrador incorreta. Tente novamente.</span>
+          </p>
+        </div>
+
+        <div class="flex justify-end gap-2.5 pt-1">
+          <button type="button" onclick="closeAdminAuthModal()" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-300 hover:bg-slate-800 transition">
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-sky-600 hover:bg-sky-500 shadow-sm transition active:scale-95"
+          >
+            <i data-lucide="unlock" class="w-4 h-4"></i>
+            <span>Autenticar</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Layout Principal com Menu Lateral Esquerdo + Área de Conteúdo -->
+  <div class="flex-1 flex items-start relative">
+
+    <!-- Backdrop Mobile Sidebar -->
+    <div id="sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden lg:hidden"></div>
+
+    <!-- Menu Lateral Esquerdo (Sidebar com todos os pilares) -->
+    <aside id="left-sidebar" class="fixed lg:sticky lg:top-[73px] lg:h-[calc(100dvh-73px)] inset-y-0 left-0 z-50 lg:z-20 w-72 bg-slate-900 border-r border-slate-800 flex flex-col justify-between overflow-hidden transform -translate-x-full lg:translate-x-0 transition-all duration-200 ease-in-out shrink-0">
+      <div id="sidebar-scroll-area" class="flex-1 min-h-0 p-4 space-y-6 overflow-y-auto overflow-x-hidden">
+        <!-- Cabeçalho Mobile Sidebar -->
+        <div class="flex items-center justify-between lg:hidden pb-3 border-b border-slate-800">
+          <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Navegação do Sistema</span>
+          <button onclick="toggleMobileSidebar()" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Grupo 1: Visão Geral -->
+        <div>
+          <p class="sidebar-group-title px-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Visão Geral</p>
+          <nav class="space-y-1">
+            <button
+              type="button"
+              id="nav-btn-dashboard"
+              title="Início & Alertas"
+              onclick="navigateTo('dashboard')"
+              class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-bold bg-orange-600 text-white shadow-sm transition"
+            >
+              <span class="nav-item-main flex items-center gap-3 min-w-0">
+                <i data-lucide="layout-dashboard" class="w-4 h-4 shrink-0"></i>
+                <span class="sidebar-label truncate">Início & Alertas</span>
+              </span>
+              <span id="sidebar-badge-baixo" class="sidebar-badge hidden px-2 py-0.5 text-xs font-bold rounded-full bg-amber-400 text-slate-950">0</span>
+            </button>
+          </nav>
+        </div>
+
+        <!-- Grupo 2: Pilares Operacionais -->
+        <div>
+          <p class="sidebar-group-title px-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Pilares do Inventário</p>
+          <nav class="space-y-1.5">
+            <button
+              type="button"
+              id="nav-btn-movimentacao"
+              title="Movimentação Rápida"
+              onclick="navigateTo('movimentacao')"
+              class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-white transition"
+            >
+              <span class="nav-item-main flex items-center gap-3 min-w-0">
+                <i data-lucide="arrow-left-right" class="w-4 h-4 text-orange-400 shrink-0"></i>
+                <span class="sidebar-label truncate">Movimentação Rápida</span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              id="nav-btn-etiquetas"
+              title="Etiquetas e Ribbon"
+              onclick="navigateTo('etiquetas')"
+              class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-white transition"
+            >
+              <span class="nav-item-main flex items-center gap-3 min-w-0">
+                <i data-lucide="tag" class="w-4 h-4 text-indigo-400 shrink-0"></i>
+                <span class="sidebar-label truncate">Etiquetas e Ribbon</span>
+              </span>
+              <span id="badge-count-etiquetas" class="sidebar-badge px-2 py-0.5 text-xs rounded-full bg-slate-800 text-slate-300">14</span>
+            </button>
+
+            <button
+              type="button"
+              id="nav-btn-demais"
+              title="Demais Insumos"
+              onclick="navigateTo('demais')"
+              class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-white transition"
+            >
+              <span class="nav-item-main flex items-center gap-3 min-w-0">
+                <i data-lucide="package-open" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+                <span class="sidebar-label truncate">Demais Insumos</span>
+              </span>
+              <span id="badge-count-demais" class="sidebar-badge px-2 py-0.5 text-xs rounded-full bg-slate-800 text-slate-300">5</span>
+            </button>
+
+            <button
+              type="button"
+              id="nav-btn-patrimonial"
+              title="Patrimonial"
+              onclick="navigateTo('patrimonial')"
+              class="hidden nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-white transition"
+            >
+              <span class="nav-item-main flex items-center gap-3 min-w-0">
+                <i data-lucide="landmark" class="w-4 h-4 text-amber-400 shrink-0"></i>
+                <span class="sidebar-label truncate">Patrimonial</span>
+              </span>
+              <span id="badge-count-patrimonial" class="sidebar-badge px-2 py-0.5 text-xs rounded-full bg-slate-800 text-slate-300">0</span>
+            </button>
+
+            <button
+              type="button"
+              id="nav-btn-historico"
+              title="Histórico"
+              onclick="navigateTo('historico')"
+              class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-white transition"
+            >
+              <span class="nav-item-main flex items-center gap-3 min-w-0">
+                <i data-lucide="clock" class="w-4 h-4 text-purple-400 shrink-0"></i>
+                <span class="sidebar-label truncate">Histórico</span>
+              </span>
+              <span id="badge-count-historico" class="sidebar-badge px-2 py-0.5 text-xs rounded-full bg-slate-800 text-slate-300">4</span>
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      <!-- Botão Recolher Menu posicionado no canto inferior direito acima do rodapé -->
+      <div id="sidebar-collapse-bar" class="shrink-0 px-3.5 pb-2.5 pt-1 flex justify-end">
+        <button
+          type="button"
+          id="btn-collapse-sidebar"
+          onclick="toggleSidebarCollapse()"
+          title="Recolher menu lateral"
+          class="hidden lg:inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 transition active:scale-95"
+        >
+          <i id="icon-collapse-sidebar" data-lucide="panel-left-close" class="w-4 h-4 shrink-0"></i>
+          <span id="label-collapse-sidebar" class="sidebar-label truncate">Recolher</span>
+        </button>
+      </div>
+
+      <!-- Rodapé do Menu Lateral -->
+      <div id="sidebar-footer" class="shrink-0 p-3.5 border-t border-slate-800 bg-slate-950/80">
+        <div id="sidebar-unit-info" class="flex items-center gap-2.5 text-xs text-slate-400">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+          <span class="sidebar-label truncate">Unidade: <strong class="text-slate-200">HUB LMG 44</strong></span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Área Principal de Conteúdo -->
+    <main class="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 space-y-6">
+
+      <!-- =================================================================== -->
+      <!-- TELA INICIAL (DASHBOARD: GRÁFICOS DE CONSUMO + ALERTAS DE ESTOQUE)  -->
+      <!-- =================================================================== -->
+      <div id="view-dashboard" class="space-y-6">
+        <!-- Cabeçalho da Tela Inicial -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Painel de Consumo & Alertas de Estoque</h2>
+            <p class="text-xs sm:text-sm text-slate-400">Acompanhe o histórico de consumo operacional e reponha rapidamente os insumos em nível crítico.</p>
+          </div>
+          <button
+            type="button"
+            onclick="navigateTo('movimentacao')"
+            class="self-start sm:self-auto inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-orange-600 hover:bg-orange-500 text-white shadow-sm transition active:scale-95"
+          >
+            <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+            <span>Nova Movimentação</span>
+          </button>
+        </div>
+
+        <!-- Seção de Notificações de Insumos em Baixa Quantidade -->
+        <section aria-label="Notificações de Estoque Baixo" class="bg-slate-900 rounded-2xl border border-amber-500/30 shadow-lg overflow-hidden">
+          <div class="bg-amber-500/10 px-6 py-4 border-b border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+                <i data-lucide="bell-ring" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                  <span>Notificações: Insumos em Baixa Quantidade</span>
+                  <span id="dashboard-alert-count-pill" class="px-2.5 py-0.5 text-xs font-extrabold rounded-full bg-amber-500 text-slate-950">0</span>
+                </h3>
+                <p class="text-xs text-amber-200/80">Itens com saldo igual ou inferior a 5 caixas/embalagens que precisam de atenção.</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="dashboard-low-stock-list" class="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <!-- Populado via JS -->
+          </div>
+        </section>
+
+        <!-- Seção de Gráficos de Histórico de Consumo por Equipe -->
+        <section aria-label="Gráficos de Histórico de Consumo por Equipe" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- Gráfico Equipe FM -->
+          <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-lg p-6 flex flex-col">
+            <div class="flex items-center justify-between gap-2 mb-4">
+              <div>
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span>
+                  <span>Consumo de Insumos — FM</span>
+                </h3>
+                <p class="text-xs text-slate-400">Retiradas de caixas/embalagens pela equipe FM.</p>
+              </div>
+              <span id="badge-total-fm" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-orange-500/15 text-orange-300 border border-orange-500/30">0 cx/emb.</span>
+            </div>
+            <div class="relative flex-1 min-h-[280px] w-full">
+              <canvas id="chart-consumo-fm"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico Equipe LM T1 -->
+          <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-lg p-6 flex flex-col">
+            <div class="flex items-center justify-between gap-2 mb-4">
+              <div>
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span>
+                  <span>Consumo de Insumos — LM T1</span>
+                </h3>
+                <p class="text-xs text-slate-400">Retiradas de caixas/embalagens pela equipe LM T1.</p>
+              </div>
+              <span id="badge-total-lmt1" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-sky-500/15 text-sky-300 border border-sky-500/30">0 cx/emb.</span>
+            </div>
+            <div class="relative flex-1 min-h-[280px] w-full">
+              <canvas id="chart-consumo-lmt1"></canvas>
+            </div>
+          </div>
+
+          <!-- Gráfico Equipe LM T3 -->
+          <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-lg p-6 flex flex-col">
+            <div class="flex items-center justify-between gap-2 mb-4">
+              <div>
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                  <span>Consumo de Insumos — LM T3</span>
+                </h3>
+                <p class="text-xs text-slate-400">Retiradas de caixas/embalagens pela equipe LM T3.</p>
+              </div>
+              <span id="badge-total-lmt3" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">0 cx/emb.</span>
+            </div>
+            <div class="relative flex-1 min-h-[280px] w-full">
+              <canvas id="chart-consumo-lmt3"></canvas>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- PILAR 1: PAINEL DE MOVIMENTAÇÃO RÁPIDA (CONTROLE)                   -->
+      <!-- =================================================================== -->
+      <section id="view-movimentacao" class="hidden bg-slate-900 rounded-2xl border border-slate-800 shadow-lg overflow-hidden">
+        <div class="bg-slate-800/60 px-6 py-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div class="flex items-center gap-2.5">
+            <span class="p-1.5 bg-orange-600 text-white rounded-lg shadow-sm">
+              <i data-lucide="arrow-left-right" class="w-4 h-4"></i>
+            </span>
+            <div>
+              <h2 class="text-base font-bold text-white">Painel de Movimentação Rápida (Controle)</h2>
+              <p class="text-xs text-slate-400">Registre entradas ou retiradas de caixas/embalagens. O saldo e o histórico atualizam na hora.</p>
+            </div>
+          </div>
+          <span id="alerta-estoque-baixo-badge" class="hidden inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+            <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+            <span id="alerta-estoque-baixo-texto">0 itens com estoque baixo</span>
+          </span>
+        </div>
+
+        <form id="form-movimentacao" class="p-6">
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            <!-- Responsável -->
+            <div class="md:col-span-3">
+              <label for="mov-responsavel" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                Responsável (Equipe) *
+              </label>
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <i data-lucide="user" class="w-4 h-4"></i>
+                </div>
+                <select
+                  id="mov-responsavel"
+                  required
+                  class="w-full pl-9 pr-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-slate-100 focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+                >
+                  <option value="" disabled selected>Selecione a equipe</option>
+                  <option value="FM">FM</option>
+                  <option value="LM T1">LM T1</option>
+                  <option value="LM T3">LM T3</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Operação (Inclusão / Retirada) -->
+            <div class="md:col-span-3">
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                Operação *
+              </label>
+              <div class="grid grid-cols-2 gap-2 p-1 bg-slate-950 rounded-xl border border-slate-800">
+                <button
+                  type="button"
+                  id="btn-op-inclusao"
+                  onclick="setOperacao('Inclusão')"
+                  class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold transition bg-emerald-600 text-white shadow-sm"
+                >
+                  <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                  <span>Inclusão</span>
+                </button>
+                <button
+                  type="button"
+                  id="btn-op-retirada"
+                  onclick="setOperacao('Retirada')"
+                  class="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold transition text-slate-400 hover:text-slate-100"
+                >
+                  <i data-lucide="minus-circle" class="w-4 h-4"></i>
+                  <span>Retirada</span>
+                </button>
+              </div>
+              <input type="hidden" id="mov-operacao" value="Inclusão" />
+            </div>
+
+            <!-- Código / Item -->
+            <div class="md:col-span-4">
+              <label for="mov-item-select" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                Código / Item *
+              </label>
+              <select
+                id="mov-item-select"
+                required
+                class="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-slate-100 focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+              >
+                <!-- Populado via JS -->
+              </select>
+            </div>
+
+            <!-- Quantidade (Caixas / Embalagens) -->
+            <div class="md:col-span-2">
+              <label for="mov-quantidade" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                Qtd. (Caixas/Emb.) *
+              </label>
+              <input
+                type="number"
+                id="mov-quantidade"
+                min="1"
+                step="1"
+                placeholder="Ex: 5"
+                required
+                class="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm font-semibold text-slate-100 placeholder-slate-500 focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
+              />
+            </div>
+          </div>
+
+          <!-- Preview & Submit Row -->
+          <div class="mt-4 pt-4 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div id="mov-preview-info" class="text-xs text-slate-400 flex items-center gap-2">
+              <i data-lucide="info" class="w-4 h-4 text-orange-400 shrink-0"></i>
+              <span>Selecione um item e informe a quantidade para visualizar o saldo resultante.</span>
+            </div>
+
+            <button
+              type="submit"
+              id="btn-submit-mov"
+              class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white bg-orange-600 hover:bg-orange-500 shadow-sm transition active:scale-95"
+            >
+              <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+              <span>Registrar Movimentação</span>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- PILAR 2: ETIQUETAS E RIBBON                                         -->
+      <!-- =================================================================== -->
+      <section id="view-etiquetas" class="hidden bg-slate-900 rounded-2xl border border-slate-800 shadow-lg overflow-hidden">
+        <div class="bg-slate-800/60 px-6 py-4 border-b border-slate-800 flex items-center gap-2.5">
+          <span class="p-1.5 bg-indigo-600 text-white rounded-lg shadow-sm">
+            <i data-lucide="tag" class="w-4 h-4"></i>
+          </span>
+          <div>
+            <h2 class="text-base font-bold text-white">Catálogo: Etiquetas e Ribbon</h2>
+            <p class="text-xs text-slate-400">Controle de caixas, itens por caixa, total de unidades e pallets.</p>
+          </div>
+        </div>
+
+        <div class="p-4 sm:p-6 space-y-4">
+          <!-- Filtros e Busca -->
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="relative flex-1 max-w-md">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <i data-lucide="search" class="w-4 h-4"></i>
+              </div>
+              <input
+                type="text"
+                id="search-etiquetas"
+                oninput="renderEtiquetasTable()"
+                placeholder="Buscar por código, descrição, dimensão ou cor..."
+                class="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
+              />
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <select id="filter-tipo-etiqueta" onchange="renderEtiquetasTable()" class="px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs sm:text-sm font-medium text-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <option value="TODOS">Todos os Tipos (Etiqueta e Ribbon)</option>
+                <option value="Etiqueta">Apenas Etiquetas</option>
+                <option value="Ribbon">Apenas Ribbons</option>
+              </select>
+
+              <select id="filter-dimensoes-etiqueta" onchange="renderEtiquetasTable()" class="px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs sm:text-sm font-medium text-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <option value="TODAS">Todas as Dimensões</option>
+              </select>
+
+              <label class="inline-flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs sm:text-sm font-medium text-amber-300 cursor-pointer select-none">
+                <input type="checkbox" id="filter-baixo-etiqueta" onchange="renderEtiquetasTable()" class="rounded bg-slate-900 border-slate-700 text-amber-500 focus:ring-amber-500" />
+                <span>Estoque Baixo (≤ 5 cx)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Tabela Responsiva -->
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="min-w-full divide-y divide-slate-800 text-sm">
+              <thead class="bg-slate-950 text-slate-400 font-bold text-xs uppercase tracking-wider">
+                <tr>
+                  <th class="px-4 py-3.5 text-left">Código</th>
+                  <th class="px-4 py-3.5 text-left">Item</th>
+                  <th class="px-4 py-3.5 text-left">Descrição</th>
+                  <th class="px-4 py-3.5 text-left">Dimensões</th>
+                  <th class="px-4 py-3.5 text-left">Cor</th>
+                  <th class="px-4 py-3.5 text-right">Qtd. de Caixas</th>
+                  <th class="px-4 py-3.5 text-right">Itens/CX</th>
+                  <th class="px-4 py-3.5 text-right bg-orange-500/10 text-orange-300">Qtd. de Itens</th>
+                  <th class="px-4 py-3.5 text-right">Qtd. de Pallets</th>
+                  <th class="px-4 py-3.5 text-center">Ação Rápida</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-etiquetas" class="divide-y divide-slate-800/80 bg-slate-900">
+                <!-- Renderizado via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- PILAR 3: DEMAIS INSUMOS                                             -->
+      <!-- =================================================================== -->
+      <section id="view-demais" class="hidden bg-slate-900 rounded-2xl border border-slate-800 shadow-lg overflow-hidden">
+        <div class="bg-slate-800/60 px-6 py-4 border-b border-slate-800 flex items-center gap-2.5">
+          <span class="p-1.5 bg-emerald-600 text-white rounded-lg shadow-sm">
+            <i data-lucide="package-open" class="w-4 h-4"></i>
+          </span>
+          <div>
+            <h2 class="text-base font-bold text-white">Catálogo: Demais Insumos</h2>
+            <p class="text-xs text-slate-400">Strech, sacas, scuttles, lacres plásticos e lacres de aço.</p>
+          </div>
+        </div>
+
+        <div class="p-4 sm:p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="relative flex-1 max-w-md">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <i data-lucide="search" class="w-4 h-4"></i>
+              </div>
+              <input
+                type="text"
+                id="search-demais"
+                oninput="renderDemaisTable()"
+                placeholder="Buscar insumo por código ou nome (ex: Strech, Lacres)..."
+                class="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
+              />
+            </div>
+            <label class="inline-flex items-center gap-2 px-3 py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs sm:text-sm font-medium text-amber-300 cursor-pointer select-none self-start">
+              <input type="checkbox" id="filter-baixo-demais" onchange="renderDemaisTable()" class="rounded bg-slate-900 border-slate-700 text-amber-500 focus:ring-amber-500" />
+              <span>Estoque Baixo (≤ 5 emb.)</span>
+            </label>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="min-w-full divide-y divide-slate-800 text-sm">
+              <thead class="bg-slate-950 text-slate-400 font-bold text-xs uppercase tracking-wider">
+                <tr>
+                  <th class="px-4 py-3.5 text-left">Código</th>
+                  <th class="px-4 py-3.5 text-left">Item</th>
+                  <th class="px-4 py-3.5 text-right">Embalagem</th>
+                  <th class="px-4 py-3.5 text-right">Qtd. por embalagem</th>
+                  <th class="px-4 py-3.5 text-right bg-orange-500/10 text-orange-300">Quantidade Total</th>
+                  <th class="px-4 py-3.5 text-center">Ação Rápida</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-demais" class="divide-y divide-slate-800/80 bg-slate-900">
+                <!-- Renderizado via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- PILAR RESTRITO: PATRIMONIAL (ADMIN, LÍDER OU ANALISTA)              -->
+      <!-- =================================================================== -->
+      <section id="view-patrimonial" class="hidden bg-slate-900 rounded-2xl border border-slate-800 shadow-lg overflow-hidden">
+        <div class="bg-slate-800/60 px-6 py-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5">
+            <span class="p-1.5 bg-amber-600 text-white rounded-lg shadow-sm">
+              <i data-lucide="landmark" class="w-4 h-4"></i>
+            </span>
+            <div>
+              <h2 class="text-base font-bold text-white">Gestão Patrimonial Independente — HUB LMG 44</h2>
+              <p class="text-xs text-slate-400">Módulo independente para consulta, cadastro e edição de bens patrimoniais (Acesso: Administrador, Líder e Analista).</p>
+            </div>
+          </div>
+          <span class="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+            <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+            <span>Módulo Independente</span>
+          </span>
+        </div>
+
+        <!-- Abas Internas do Pilar Patrimonial: Consulta e Edição -->
+        <div class="px-6 pt-4 border-b border-slate-800 bg-slate-950/40 flex flex-wrap gap-2">
+          <button
+            type="button"
+            id="pat-tab-btn-consulta"
+            onclick="switchPatrimonialTab('consulta')"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-bold border-b-2 border-amber-500 bg-slate-900 text-amber-400 transition"
+          >
+            <i data-lucide="search" class="w-4 h-4"></i>
+            <span>Consulta Patrimonial</span>
+          </button>
+          <button
+            type="button"
+            id="pat-tab-btn-edicao"
+            onclick="switchPatrimonialTab('edicao')"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition"
+          >
+            <i data-lucide="edit-3" class="w-4 h-4"></i>
+            <span>Edição e Cadastro</span>
+          </button>
+        </div>
+
+        <!-- SUB-ABA 1: CONSULTA PATRIMONIAL -->
+        <div id="pat-subview-consulta" class="p-4 sm:p-6 space-y-4">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="relative flex-1 max-w-md">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <i data-lucide="search" class="w-4 h-4"></i>
+              </div>
+              <input
+                type="text"
+                id="search-patrimonial"
+                oninput="renderPatrimonialTable()"
+                placeholder="Consultar por código, plaqueta, equipamento, série, modelo ou setor..."
+                class="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 transition"
+              />
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <select id="filter-tipo-patrimonial" onchange="renderPatrimonialTable()" class="px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs sm:text-sm font-medium text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <option value="TODOS">Todos os Tipos</option>
+              </select>
+
+              <select id="filter-status-patrimonial" onchange="renderPatrimonialTable()" class="px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs sm:text-sm font-medium text-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                <option value="TODOS">Todos os Status</option>
+                <option value="Ativo">Ativo</option>
+                <option value="Em Manutenção">Em Manutenção</option>
+                <option value="Baixado">Baixado</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="min-w-full divide-y divide-slate-800 text-sm">
+              <thead class="bg-slate-950 text-slate-400 font-bold text-xs uppercase tracking-wider">
+                <tr>
+                  <th class="px-4 py-3.5 text-left">Código / Plaqueta</th>
+                  <th class="px-4 py-3.5 text-left">Tipo</th>
+                  <th class="px-4 py-3.5 text-left">Item / Equipamento</th>
+                  <th class="px-4 py-3.5 text-left">Nº de Série</th>
+                  <th class="px-4 py-3.5 text-left">Modelo</th>
+                  <th class="px-4 py-3.5 text-left">Setor / Localização</th>
+                  <th class="px-4 py-3.5 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-patrimonial" class="divide-y divide-slate-800/80 bg-slate-900">
+                <!-- Renderizado via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SUB-ABA 2: EDIÇÃO E CADASTRO PATRIMONIAL -->
+        <div id="pat-subview-edicao" class="hidden p-4 sm:p-6 space-y-6">
+          <!-- Formulário Independente de Inclusão de Novo Bem Patrimonial -->
+          <form id="form-novo-patrimonial" onsubmit="adicionarItemPatrimonial(event)" class="bg-slate-950/70 p-5 rounded-2xl border border-slate-800 space-y-4">
+            <div class="flex items-center gap-2 text-sm font-bold text-amber-300">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              <span>Cadastrar Novo Bem Patrimonial</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+              <div>
+                <label for="pat-new-cod" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Código / Plaqueta *</label>
+                <input type="text" id="pat-new-cod" required placeholder="Ex: PAT004" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-white uppercase focus:outline-none focus:ring-2 focus:ring-amber-500" />
+              </div>
+              <div>
+                <label for="pat-new-tipo" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Tipo de Patrimônio *</label>
+                <select id="pat-new-tipo" required onchange="onPatrimonioTipoSelectChange(this)" class="w-full px-2.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+                  <!-- Populado via JS -->
+                </select>
+                <div id="pat-custom-tipo-wrapper" class="hidden mt-1.5 flex items-center gap-1.5">
+                  <input
+                    type="text"
+                    id="pat-custom-tipo-input"
+                    placeholder="Nome do novo tipo..."
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();confirmarNovoTipoPatrimonio();}"
+                    class="w-full px-2.5 py-1.5 bg-slate-900 border border-amber-500/60 rounded-lg text-xs text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <button
+                    type="button"
+                    onclick="confirmarNovoTipoPatrimonio()"
+                    title="Salvar novo tipo"
+                    class="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shrink-0 transition"
+                  >
+                    OK
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label for="pat-new-serie" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Nº de Série</label>
+                <input type="text" id="pat-new-serie" placeholder="Ex: SN-984512" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500" />
+              </div>
+              <div>
+                <label for="pat-new-modelo" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Modelo</label>
+                <input type="text" id="pat-new-modelo" placeholder="Ex: Honeywell 1952g" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500" />
+              </div>
+              <div>
+                <label for="pat-new-setor" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Setor / Local</label>
+                <input type="text" id="pat-new-setor" placeholder="Ex: Triagem FM" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500" />
+              </div>
+              <div>
+                <label for="pat-new-status" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Status</label>
+                <select id="pat-new-status" class="w-full px-2.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
+                  <option value="Ativo">Ativo</option>
+                  <option value="Em Manutenção">Em Manutenção</option>
+                  <option value="Baixado">Baixado</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex justify-end">
+              <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-slate-950 bg-amber-500 hover:bg-amber-400 shadow-sm transition active:scale-95">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Adicionar Bem Patrimonial</span>
+              </button>
+            </div>
+          </form>
+
+          <!-- Tabela Editável Direta do Patrimonial -->
+          <div class="space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <i data-lucide="sliders" class="w-4 h-4 text-amber-400"></i>
+                <span>Editar Bens Patrimoniais Cadastrados</span>
+              </h3>
+              <div class="relative w-full sm:w-72">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                  <i data-lucide="search" class="w-4 h-4"></i>
+                </div>
+                <input
+                  type="text"
+                  id="search-patrimonial-edit"
+                  oninput="renderPatrimonialEditTable()"
+                  placeholder="Filtrar para edição..."
+                  class="w-full pl-9 pr-3 py-1.5 bg-slate-950 border border-slate-700 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-800">
+              <table class="min-w-full divide-y divide-slate-800 text-xs sm:text-sm">
+                <thead class="bg-slate-950 text-slate-400 font-bold text-[11px] uppercase tracking-wider">
+                  <tr>
+                    <th class="px-3 py-3 text-left">Código / Plaqueta</th>
+                    <th class="px-3 py-3 text-left">Tipo</th>
+                    <th class="px-3 py-3 text-left">Nº de Série</th>
+                    <th class="px-3 py-3 text-left">Modelo</th>
+                    <th class="px-3 py-3 text-left">Setor / Local</th>
+                    <th class="px-3 py-3 text-left">Status</th>
+                    <th class="px-3 py-3 text-center">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-patrimonial-edit" class="divide-y divide-slate-800/80 bg-slate-900">
+                  <!-- Renderizado via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- PILAR 4: PAINEL ADMINISTRADOR (CADASTRAR + EDITAR BANCO DE DADOS)   -->
+      <!-- =================================================================== -->
+      <section id="view-admin" class="hidden bg-slate-900 rounded-2xl border border-slate-800 shadow-lg overflow-hidden">
+        <div class="bg-slate-800/60 px-6 py-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <span class="p-1.5 bg-sky-600 text-white rounded-lg shadow-sm">
+              <i data-lucide="shield-check" class="w-4 h-4"></i>
+            </span>
+            <div>
+              <h2 class="text-base font-bold text-white">Painel do Administrador — HUB LMG 44</h2>
+              <p class="text-xs text-slate-400">Cadastre novos insumos ou edite diretamente os registros e saldos do banco de dados.</p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onclick="bloquearCadastroAdmin()"
+            class="self-start sm:self-auto inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-red-950/70 text-slate-300 hover:text-red-300 border border-slate-700 hover:border-red-500/40 transition"
+          >
+            <i data-lucide="lock" class="w-3.5 h-3.5"></i>
+            <span>Encerrar Sessão Admin</span>
+          </button>
+        </div>
+
+        <!-- Abas Internas do Administrador -->
+        <div class="px-6 pt-4 border-b border-slate-800 bg-slate-950/40 flex flex-wrap gap-2">
+          <button
+            type="button"
+            id="admin-tab-btn-cadastro"
+            onclick="switchAdminTab('cadastro')"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-bold border-b-2 border-sky-500 bg-slate-900 text-sky-400 transition"
+          >
+            <i data-lucide="plus-square" class="w-4 h-4"></i>
+            <span>Cadastrar Novo Item</span>
+          </button>
+          <button
+            type="button"
+            id="admin-tab-btn-editar"
+            onclick="switchAdminTab('editar')"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition"
+          >
+            <i data-lucide="database" class="w-4 h-4"></i>
+            <span>Editar Banco de Dados</span>
+          </button>
+          <button
+            type="button"
+            id="admin-tab-btn-usuarios"
+            onclick="switchAdminTab('usuarios')"
+            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition"
+          >
+            <i data-lucide="users" class="w-4 h-4"></i>
+            <span>Gestão de Usuários</span>
+          </button>
+        </div>
+
+        <!-- SUB-ABA A: CADASTRAR NOVO ITEM -->
+        <div id="admin-subview-cadastro" class="p-6 max-w-3xl mx-auto">
+          <form id="form-novo-item" class="space-y-5 bg-slate-950/70 p-6 rounded-2xl border border-slate-800">
+            <!-- Categoria -->
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Categoria de Destino *</label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label class="flex items-center gap-3 p-3.5 bg-slate-900 border-2 border-orange-500 rounded-xl cursor-pointer" id="label-cat-etiquetas">
+                  <input type="radio" name="nova-categoria" value="Etiquetas e Ribbon" checked onchange="toggleCadastroFields()" class="text-orange-500 focus:ring-orange-500" />
+                  <div>
+                    <span class="block text-sm font-bold text-white">Etiquetas e Ribbon</span>
+                    <span class="block text-xs text-slate-400">Dimensões, cor, caixas e pallets</span>
+                  </div>
+                </label>
+
+                <label class="flex items-center gap-3 p-3.5 bg-slate-900 border border-slate-700 rounded-xl cursor-pointer" id="label-cat-demais">
+                  <input type="radio" name="nova-categoria" value="Demais insumos" onchange="toggleCadastroFields()" class="text-orange-500 focus:ring-orange-500" />
+                  <div>
+                    <span class="block text-sm font-bold text-white">Demais Insumos</span>
+                    <span class="block text-xs text-slate-400">Strech, sacas, lacres, gerais</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="novo-codigo" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Código do Item *</label>
+                <input type="text" id="novo-codigo" required placeholder="Ex: PA001999 ou INS06" class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 uppercase focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+
+              <div id="field-tipo-etiqueta">
+                <label for="novo-tipo" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Tipo de Item *</label>
+                <select id="novo-tipo" class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                  <option value="Etiqueta">Etiqueta</option>
+                  <option value="Ribbon">Ribbon</option>
+                </select>
+              </div>
+
+              <div id="field-nome-demais" class="hidden">
+                <label for="novo-nome-insumo" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Nome do Insumo *</label>
+                <input type="text" id="novo-nome-insumo" placeholder="Ex: Fita Adesiva Transparente" class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+            </div>
+
+            <!-- Campos específicos de Etiquetas/Ribbon -->
+            <div id="campos-especificos-etiquetas" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="sm:col-span-3">
+                <label for="novo-descricao" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Descrição Completa *</label>
+                <input type="text" id="novo-descricao" placeholder="Ex: Automatech - 74M/ 948UN" class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+              <div>
+                <label for="novo-dimensoes" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Dimensões</label>
+                <input type="text" id="novo-dimensoes" placeholder="Ex: 100x75cm" class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+              <div>
+                <label for="novo-cor" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Cor</label>
+                <input type="text" id="novo-cor" placeholder="Ex: Branca, Lilás ou -" class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+              <div>
+                <label for="novo-pallets" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Qtd. de Pallets</label>
+                <input type="number" id="novo-pallets" min="0" value="0" class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+            </div>
+
+            <!-- Quantidades Iniciais -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
+              <div>
+                <label for="novo-qtd-caixas" id="label-qtd-caixas" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Qtd. Inicial de Caixas *</label>
+                <input type="number" id="novo-qtd-caixas" min="0" value="0" required class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+              <div>
+                <label for="novo-itens-por-caixa" id="label-itens-caixa" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Itens por Caixa (Itens/CX) *</label>
+                <input type="number" id="novo-itens-por-caixa" min="1" value="1" required class="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+              </div>
+            </div>
+
+            <div class="pt-3 flex justify-end">
+              <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white bg-orange-600 hover:bg-orange-500 shadow-sm transition active:scale-95">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Salvar Novo Item no Estoque</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- SUB-ABA B: EDITAR BANCO DE DADOS -->
+        <div id="admin-subview-editar" class="hidden p-4 sm:p-6 space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/70 p-4 rounded-xl border border-slate-800">
+            <div class="flex items-center gap-2.5 text-xs text-slate-300">
+              <i data-lucide="info" class="w-4 h-4 text-sky-400 shrink-0"></i>
+              <span>Altere diretamente os campos abaixo e clique em <strong class="text-white">Salvar</strong> na linha desejada, ou exclua registros obsoletos.</span>
+            </div>
+            <div class="relative w-full sm:w-72">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <i data-lucide="search" class="w-4 h-4"></i>
+              </div>
+              <input
+                type="text"
+                id="search-admin-db"
+                oninput="renderAdminDatabaseEditor()"
+                placeholder="Filtrar código ou descrição..."
+                class="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+            </div>
+          </div>
+
+          <!-- Tabela Editável 1: Etiquetas e Ribbon -->
+          <div class="space-y-2.5">
+            <h3 class="text-sm font-bold text-indigo-300 flex items-center gap-2">
+              <i data-lucide="tag" class="w-4 h-4"></i>
+              <span>Banco de Dados: Etiquetas e Ribbon</span>
+            </h3>
+            <div class="overflow-x-auto rounded-xl border border-slate-800">
+              <table class="min-w-full divide-y divide-slate-800 text-xs sm:text-sm">
+                <thead class="bg-slate-950 text-slate-400 font-bold text-[11px] uppercase tracking-wider">
+                  <tr>
+                    <th class="px-3 py-3 text-left">Código</th>
+                    <th class="px-3 py-3 text-left">Tipo</th>
+                    <th class="px-3 py-3 text-left">Descrição</th>
+                    <th class="px-3 py-3 text-left">Dimensões</th>
+                    <th class="px-3 py-3 text-left">Cor</th>
+                    <th class="px-3 py-3 text-right">Caixas</th>
+                    <th class="px-3 py-3 text-right">Itens/CX</th>
+                    <th class="px-3 py-3 text-right">Pallets</th>
+                    <th class="px-3 py-3 text-center">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-admin-etiquetas" class="divide-y divide-slate-800/80 bg-slate-900">
+                  <!-- Populado via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tabela Editável 2: Demais Insumos -->
+          <div class="space-y-2.5">
+            <h3 class="text-sm font-bold text-emerald-300 flex items-center gap-2">
+              <i data-lucide="package-open" class="w-4 h-4"></i>
+              <span>Banco de Dados: Demais Insumos</span>
+            </h3>
+            <div class="overflow-x-auto rounded-xl border border-slate-800">
+              <table class="min-w-full divide-y divide-slate-800 text-xs sm:text-sm">
+                <thead class="bg-slate-950 text-slate-400 font-bold text-[11px] uppercase tracking-wider">
+                  <tr>
+                    <th class="px-3 py-3 text-left">Código</th>
+                    <th class="px-3 py-3 text-left">Item</th>
+                    <th class="px-3 py-3 text-right">Embalagens</th>
+                    <th class="px-3 py-3 text-right">Qtd./Emb.</th>
+                    <th class="px-3 py-3 text-center">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-admin-demais" class="divide-y divide-slate-800/80 bg-slate-900">
+                  <!-- Populado via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB-ABA C: GESTÃO DE USUÁRIOS -->
+        <div id="admin-subview-usuarios" class="hidden p-4 sm:p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/70 p-4 rounded-xl border border-slate-800">
+            <div class="flex items-center gap-2.5 text-xs text-slate-300">
+              <i data-lucide="users" class="w-4 h-4 text-sky-400 shrink-0"></i>
+              <span>Visualize todos os usuários cadastrados no sistema e edite <strong class="text-white">Nome, Função, Equipe, Ops ID ou Senha</strong> diretamente na tabela.</span>
+            </div>
+            <div class="relative w-full sm:w-72">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <i data-lucide="search" class="w-4 h-4"></i>
+              </div>
+              <input
+                type="text"
+                id="search-admin-users"
+                oninput="renderAdminUsersManager()"
+                placeholder="Buscar usuário, nome, função ou equipe..."
+                class="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+            </div>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="min-w-full divide-y divide-slate-800 text-xs sm:text-sm">
+              <thead class="bg-slate-950 text-slate-400 font-bold text-[11px] uppercase tracking-wider">
+                <tr>
+                  <th class="px-3 py-3 text-left">Ops ID / Usuário</th>
+                  <th class="px-3 py-3 text-left">Nome Completo</th>
+                  <th class="px-3 py-3 text-left">Função</th>
+                  <th class="px-3 py-3 text-left">Equipe</th>
+                  <th class="px-3 py-3 text-left">Senha de Acesso</th>
+                  <th class="px-3 py-3 text-center">Perfil</th>
+                  <th class="px-3 py-3 text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-admin-usuarios" class="divide-y divide-slate-800/80 bg-slate-900">
+                <!-- Populado via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================== -->
+      <!-- PILAR 5: HISTÓRICO DE MOVIMENTAÇÕES                                 -->
+      <!-- =================================================================== -->
+      <section id="view-historico" class="hidden bg-slate-900 rounded-2xl border border-slate-800 shadow-lg overflow-hidden">
+        <div class="bg-slate-800/60 px-6 py-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex items-center gap-2.5">
+            <span class="p-1.5 bg-purple-600 text-white rounded-lg shadow-sm">
+              <i data-lucide="clock" class="w-4 h-4"></i>
+            </span>
+            <div>
+              <h2 class="text-base font-bold text-white">Histórico Completo de Movimentações (Últimos 12 Meses)</h2>
+              <p class="text-xs text-slate-400">Retenção automática de 12 meses com separação por abas mensais e consulta de meses fechados.</p>
+            </div>
+          </div>
+          <span class="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/30">
+            <i data-lucide="calendar-range" class="w-3.5 h-3.5"></i>
+            <span>Retenção: 12 meses ativos</span>
+          </span>
+        </div>
+
+        <div class="p-4 sm:p-6 space-y-4">
+          <div class="space-y-1.5">
+            <span class="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Abas por Mês (Início Automático de Novo Mês)</span>
+            <div id="historico-month-tabs" class="flex items-center gap-2 overflow-x-auto pb-2"></div>
+          </div>
+
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
+            <div class="relative flex-1 max-w-md">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <i data-lucide="search" class="w-4 h-4"></i>
+              </div>
+              <input
+                type="text"
+                id="search-historico"
+                oninput="renderHistoricoTable()"
+                placeholder="Filtrar por usuário, nome, função, equipe, código ou item..."
+                class="w-full pl-9 pr-4 py-2 bg-slate-950 border border-slate-700 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 transition"
+              />
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <label for="filter-historico-periodo" class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <i data-lucide="filter" class="w-3.5 h-3.5 text-purple-400"></i>
+                <span>Período:</span>
+              </label>
+              <select
+                id="filter-historico-periodo"
+                onchange="onHistoricoPeriodoChange()"
+                class="px-3.5 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs sm:text-sm font-semibold text-slate-100 focus:outline-none focus:ring-2 focus:ring-purple-500 transition"
+              >
+                <option value="TODOS">Todos os registros (Até 12 meses)</option>
+                <option value="3M_FECHADOS">Últimos 3 meses fechados</option>
+                <option value="6M_FECHADOS">Últimos 6 meses fechados</option>
+                <option value="12M_FECHADOS">Últimos 12 meses fechados</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="historico-filter-summary" class="text-xs text-slate-400 flex flex-wrap items-center justify-between gap-2 bg-slate-950/60 px-3.5 py-2.5 rounded-xl border border-slate-800/80"></div>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="min-w-full divide-y divide-slate-800 text-sm">
+              <thead class="bg-slate-950 text-slate-400 font-bold text-xs uppercase tracking-wider">
+                <tr>
+                  <th class="px-4 py-3.5 text-left">Data e Hora</th>
+                  <th class="px-4 py-3.5 text-left">Mês Ref.</th>
+                  <th class="px-4 py-3.5 text-left">Código</th>
+                  <th class="px-4 py-3.5 text-left">Descrição</th>
+                  <th class="px-4 py-3.5 text-left">Dimensões</th>
+                  <th class="px-4 py-3.5 text-right">Quantidade</th>
+                  <th class="px-4 py-3.5 text-center">Operação</th>
+                  <th class="px-4 py-3.5 text-left">Usuário</th>
+                  <th class="px-4 py-3.5 text-left">Nome</th>
+                  <th class="px-4 py-3.5 text-left">Função</th>
+                  <th class="px-4 py-3.5 text-left">Equipe</th>
+                  <th class="px-4 py-3.5 text-left">Categoria</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-historico" class="divide-y divide-slate-800/80 bg-slate-900">
+                <!-- Renderizado via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-slate-900 border-t border-slate-800 py-4">
+    <div class="w-full px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2">
+      <span>Sistema de Controle de Inventário • <strong class="text-slate-200">SPX Express — HUB LMG 44</strong> • desenvolvido por Dian Ribeiro Ferreira</span>
+      <span id="footer-sync-info">Sincronizado em tempo real na nuvem para todos os usuários com acesso.</span>
+    </div>
+  </footer>
+
+  <!-- Integração em Nuvem (Tempo Real) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    window.__cloudSync = {
+      enabled: false,
+      saveToCloud: null
+    };
+
+    async function initCloudSync() {
+      const statusLabel = document.getElementById('cloud-sync-label');
+      const statusBox = document.getElementById('cloud-sync-status');
+
+      try {
+        if (typeof __firebase_config === 'undefined' || !__firebase_config) {
+          if (statusLabel) statusLabel.textContent = 'Modo Local Ativo';
+          return;
+        }
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'hub-lmg-44-default';
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Regra 3: Autenticar antes de qualquer operação no banco
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+
+        const user = auth.currentUser;
+        if (!user) return;
+
+        // Regra 1: Caminho público compartilhado para todos os operadores do HUB
+        const sharedDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventario_hub_lmg_44', 'estado_atual_limpo');
+
+        window.__cloudSync.enabled = true;
+        window.__cloudSync.saveToCloud = async (currentState) => {
+          if (!auth.currentUser) return;
+          try {
+            await setDoc(sharedDocRef, {
+              etiquetas: currentState.etiquetas,
+              demais: currentState.demais,
+              patrimonial: currentState.patrimonial || [],
+              tiposPatrimonio: currentState.tiposPatrimonio || TIPOS_PATRIMONIO,
+              historico: currentState.historico,
+              mesesHistorico: currentState.mesesHistorico,
+              operadoresCadastrados: currentState.operadoresCadastrados || {},
+              updatedAt: new Date().toISOString()
+            });
+          } catch (err) {
+            console.error('Erro ao salvar estado compartilhado:', err);
+          }
+        };
+
+        let isFirstSnapshot = true;
+
+        onSnapshot(
+          sharedDocRef,
+          async (snapshot) => {
+            if (statusLabel) statusLabel.textContent = 'Online • Tempo Real';
+            if (statusBox) statusBox.classList.remove('hidden');
+
+            if (snapshot.exists()) {
+              const cloudData = snapshot.data();
+              if (cloudData && Array.isArray(cloudData.etiquetas) && Array.isArray(cloudData.demais)) {
+                if (typeof window.applyExternalState === 'function') {
+                  window.applyExternalState(cloudData);
+                }
+              }
+            } else if (isFirstSnapshot && typeof window.getCurrentInventoryState === 'function') {
+              await window.__cloudSync.saveToCloud(window.getCurrentInventoryState());
+            }
+            isFirstSnapshot = false;
+          },
+          (error) => {
+            console.error('Erro na sincronização em tempo real:', error);
+            if (statusLabel) statusLabel.textContent = 'Offline (Modo Local)';
+          }
+        );
+      } catch (err) {
+        console.error('Falha ao inicializar nuvem:', err);
+        if (statusLabel) statusLabel.textContent = 'Modo Local';
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initCloudSync();
+    });
+  </script>
+
+  <!-- Application Logic -->
+  <script>
+    // =========================================================================
+    // 1. AUTENTICAÇÃO, CADASTRO DE OPERADORES E PERMISSÕES
+    // =========================================================================
+    const ADMIN_ACCESS_CODE = 'Admin@123';
+    const STORAGE_KEY_OPERATORS = 'hub_lmg44_registered_operators_v1';
+    const STORAGE_KEY_SESSION = 'hub_lmg44_logged_session_v1';
+
+    const DEFAULT_SYSTEM_USERS = {
+      admin: {
+        password: 'Admin@123',
+        nome: 'Administrador HUB',
+        funcao: 'Líder',
+        equipe: 'FM',
+        isAdmin: true
+      },
+      fm: {
+        password: 'Shopee@123',
+        nome: 'Operador FM',
+        funcao: 'Aux. Logístico',
+        equipe: 'FM',
+        isAdmin: false
+      },
+      lmt1: {
+        password: 'Shopee@123',
+        nome: 'Operador LM T1',
+        funcao: 'Aux. Logístico',
+        equipe: 'LM T1',
+        isAdmin: false
+      },
+      lmt3: {
+        password: 'Shopee@123',
+        nome: 'Operador LM T3',
+        funcao: 'Aux. Logístico',
+        equipe: 'LM T3',
+        isAdmin: false
+      }
+    };
+
+    let SYSTEM_USERS = JSON.parse(JSON.stringify(DEFAULT_SYSTEM_USERS));
+    let currentLoggedUser = null;
+
+    function getPersistableUsersMap() {
+      const custom = {};
+      Object.entries(SYSTEM_USERS).forEach(([uname, udata]) => {
+        custom[uname] = udata;
+      });
+      return custom;
+    }
+
+    function loadRegisteredOperators() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_OPERATORS);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object') {
+            SYSTEM_USERS = { ...JSON.parse(JSON.stringify(DEFAULT_SYSTEM_USERS)), ...parsed };
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao carregar operadores salvos:', e);
+      }
+    }
+
+    function saveRegisteredOperators(usersMap) {
+      try {
+        localStorage.setItem(STORAGE_KEY_OPERATORS, JSON.stringify(usersMap));
+      } catch (e) {
+        console.error('Erro ao salvar operadores:', e);
+      }
+    }
+
+    function switchAuthTab(tab) {
+      const formLogin = document.getElementById('form-login');
+      const formRegister = document.getElementById('form-register-operator');
+      const btnLogin = document.getElementById('tab-auth-login');
+      const btnRegister = document.getElementById('tab-auth-register');
+      const loginErr = document.getElementById('login-error');
+      const regErr = document.getElementById('register-error');
+
+      if (loginErr) loginErr.classList.add('hidden');
+      if (regErr) regErr.classList.add('hidden');
+
+      if (tab === 'login') {
+        formLogin?.classList.remove('hidden');
+        formRegister?.classList.add('hidden');
+        if (btnLogin) btnLogin.className = 'py-2 rounded-lg text-xs font-bold transition bg-orange-600 text-white shadow';
+        if (btnRegister) btnRegister.className = 'py-2 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white';
+      } else {
+        formLogin?.classList.add('hidden');
+        formRegister?.classList.remove('hidden');
+        if (btnRegister) btnRegister.className = 'py-2 rounded-lg text-xs font-bold transition bg-orange-600 text-white shadow';
+        if (btnLogin) btnLogin.className = 'py-2 rounded-lg text-xs font-bold transition text-slate-400 hover:text-white';
+      }
+      lucide.createIcons();
+    }
+
+    function canAccessPatrimonial() {
+      if (isCadastroAdminUnlocked) return true;
+      if (!currentLoggedUser) return false;
+      if (currentLoggedUser.isAdmin) return true;
+      const funcao = (currentLoggedUser.funcao || '').trim();
+      return funcao === 'Líder' || funcao === 'Analista';
+    }
+
+    function updatePatrimonialAccessVisibility() {
+      const navBtn = document.getElementById('nav-btn-patrimonial');
+      if (!navBtn) return;
+      const allowed = canAccessPatrimonial();
+      navBtn.classList.toggle('hidden', !allowed);
+      if (!allowed && activeView === 'patrimonial') {
+        navigateTo('dashboard');
+      }
+    }
+
+    function applyLoggedUserUI(userObj) {
+      currentLoggedUser = userObj;
+      const loginScreen = document.getElementById('login-screen');
+      const badge = document.getElementById('logged-user-badge');
+      const badgeName = document.getElementById('logged-user-name');
+      const respSelect = document.getElementById('mov-responsavel');
+
+      if (loginScreen) loginScreen.classList.add('hidden');
+      if (badge && badgeName && userObj) {
+        badge.classList.remove('hidden');
+        badgeName.textContent = `${userObj.nome} (${userObj.funcao} • ${userObj.equipe})`;
+      }
+      if (respSelect && userObj && userObj.equipe) {
+        respSelect.value = userObj.equipe;
+      }
+
+      if (userObj && userObj.isAdmin) {
+        isCadastroAdminUnlocked = true;
+        const headerBtn = document.getElementById('header-admin-btn');
+        if (headerBtn) {
+          headerBtn.className = 'inline-flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-sky-600 text-white border border-sky-400 shadow-sm transition active:scale-95';
+        }
+      }
+      updatePatrimonialAccessVisibility();
+    }
+
+    function restoreLoginSession() {
+      try {
+        const raw = sessionStorage.getItem(STORAGE_KEY_SESSION);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.username && SYSTEM_USERS[parsed.username]) {
+            applyLoggedUserUI({ username: parsed.username, ...SYSTEM_USERS[parsed.username] });
+          }
+        }
+      } catch (e) {}
+    }
+
+    function logoutSystem() {
+      sessionStorage.removeItem(STORAGE_KEY_SESSION);
+      currentLoggedUser = null;
+      isCadastroAdminUnlocked = false;
+      const headerBtn = document.getElementById('header-admin-btn');
+      if (headerBtn) {
+        headerBtn.className = 'inline-flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 shadow-sm transition active:scale-95';
+      }
+      const loginScreen = document.getElementById('login-screen');
+      if (loginScreen) loginScreen.classList.remove('hidden');
+      document.getElementById('form-login')?.reset();
+      switchAuthTab('login');
+      updatePatrimonialAccessVisibility();
+    }
+
+    document.getElementById('form-login')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const username = (document.getElementById('login-username').value || '').trim().toLowerCase();
+      const password = (document.getElementById('login-password').value || '').trim();
+      const errorEl = document.getElementById('login-error');
+
+      const foundUser = SYSTEM_USERS[username];
+      if (!foundUser || foundUser.password !== password) {
+        errorEl?.classList.remove('hidden');
+        return;
+      }
+
+      errorEl?.classList.add('hidden');
+      const sessionData = { username, ...foundUser };
+      sessionStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(sessionData));
+      applyLoggedUserUI(sessionData);
+      refreshAll();
+      showToast(`Bem-vindo(a), ${foundUser.nome}!`, 'success');
+    });
+
+    document.getElementById('form-register-operator')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const nome = (document.getElementById('reg-nome').value || '').trim();
+      const funcao = document.getElementById('reg-funcao').value;
+      const equipe = document.getElementById('reg-equipe').value;
+      const username = (document.getElementById('reg-username').value || '').trim().toLowerCase();
+      const password = (document.getElementById('reg-password').value || '').trim();
+      const adminUser = (document.getElementById('reg-admin-user').value || '').trim().toLowerCase();
+      const adminPass = (document.getElementById('reg-admin-pass').value || '').trim();
+      const errorEl = document.getElementById('register-error');
+
+      if (!nome || !username || !password) {
+        if (errorEl) {
+          errorEl.textContent = 'Preencha todos os campos obrigatórios do operador.';
+          errorEl.classList.remove('hidden');
+        }
+        return;
+      }
+
+      if (SYSTEM_USERS[username]) {
+        if (errorEl) {
+          errorEl.textContent = `O Ops ID / usuário "${username}" já está cadastrado.`;
+          errorEl.classList.remove('hidden');
+        }
+        return;
+      }
+
+      const adminAccount = SYSTEM_USERS[adminUser];
+      if (!adminAccount || !adminAccount.isAdmin || adminAccount.password !== adminPass) {
+        if (errorEl) {
+          errorEl.textContent = 'Usuário ou senha do Administrador inválidos para validar o cadastro.';
+          errorEl.classList.remove('hidden');
+        }
+        return;
+      }
+
+      errorEl?.classList.add('hidden');
+      SYSTEM_USERS[username] = {
+        password,
+        nome,
+        funcao,
+        equipe,
+        isAdmin: false
+      };
+
+      saveRegisteredOperators(getPersistableUsersMap());
+      saveState();
+
+      const sessionData = { username, ...SYSTEM_USERS[username] };
+      sessionStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(sessionData));
+      this.reset();
+      applyLoggedUserUI(sessionData);
+      refreshAll();
+      showToast(`Operador ${nome} (${username}) cadastrado e autenticado!`, 'success');
+    });
+
+    // =========================================================================
+    // 2. DADOS INICIAIS (CATÁLOGO E PATRIMONIAL)
+    // =========================================================================
+    const INITIAL_DATA = {
+      etiquetas: [
+        { codigo: 'PA001734', item: 'Etiqueta', descricao: 'Automatech - 74M/ 948UN', dimensoes: '100x75cm', cor: 'Branca', qtdCaixas: 639, itensPorCaixa: 27, qtdPallets: 31 },
+        { codigo: 'PA000177', item: 'Etiqueta', descricao: 'Automatech - 30M/385UN', dimensoes: '100x75cm', cor: 'Branca', qtdCaixas: 36, itensPorCaixa: 27, qtdPallets: 1 },
+        { codigo: 'PA001733', item: 'Etiqueta', descricao: 'Automatech - 74M/1720UN', dimensoes: '70x40cm', cor: 'Branca', qtdCaixas: 310, itensPorCaixa: 36, qtdPallets: 16 },
+        { codigo: 'PA000015', item: 'Etiqueta', descricao: 'Automatech - 30M/698UN', dimensoes: '70x40cm', cor: 'Branca', qtdCaixas: 50, itensPorCaixa: 96, qtdPallets: 2 },
+        { codigo: 'NF2565',   item: 'Etiqueta', descricao: 'Grudeli Soluções - 30M/698UN', dimensoes: '70x40cm', cor: 'Branca', qtdCaixas: 31, itensPorCaixa: 54, qtdPallets: 1 },
+        { codigo: 'PA000069', item: 'Etiqueta', descricao: 'Automatech - 30M/194UN', dimensoes: '100X150cm', cor: 'Branca', qtdCaixas: 73, itensPorCaixa: 24, qtdPallets: 2 },
+        { codigo: 'PA001735', item: 'Etiqueta', descricao: 'Automatech - 74M/483UN', dimensoes: '100X150cm', cor: 'Branca', qtdCaixas: 114, itensPorCaixa: 27, qtdPallets: 6 },
+        { codigo: 'NF5331',   item: 'Etiqueta', descricao: 'Grudeli Soluções - 30M/194UN', dimensoes: '100X150cm', cor: 'Branca', qtdCaixas: 7, itensPorCaixa: 24, qtdPallets: 1 },
+        { codigo: 'PA001141', item: 'Etiqueta', descricao: 'Automatech - 151M/2830UN', dimensoes: '100x50cm', cor: 'Branca', qtdCaixas: 3, itensPorCaixa: 5, qtdPallets: 1 },
+        { codigo: 'PA001743', item: 'Etiqueta', descricao: 'Automatech - 74M/948UN', dimensoes: '100x75cm', cor: 'Lilás', qtdCaixas: 296, itensPorCaixa: 27, qtdPallets: 13 },
+        { codigo: 'NF5109',   item: 'Etiqueta', descricao: 'Grudeli Soluções - 30M/385UN', dimensoes: '100x75cm', cor: 'Lilás', qtdCaixas: 81, itensPorCaixa: 24, qtdPallets: 1 },
+        { codigo: '7777',     item: 'Ribbon',   descricao: 'Ribbon 74 M (caixas P) - Várias marcas', dimensoes: '110 mm', cor: '-', qtdCaixas: 154, itensPorCaixa: 48, qtdPallets: 1 },
+        { codigo: 'TDW108',   item: 'Ribbon',   descricao: 'Ribbon 74 M (caixas M) - Sem marca', dimensoes: '110mm', cor: '-', qtdCaixas: 48, itensPorCaixa: 72, qtdPallets: 1 },
+        { codigo: 'PR000342', item: 'Ribbon',   descricao: 'Ribbon 74 M (caixas G) - Automatech', dimensoes: '110mm', cor: '-', qtdCaixas: 51, itensPorCaixa: 100, qtdPallets: 1 }
+      ],
+      demais: [
+        { codigo: 'INS01', item: 'Strech', embalagem: 7, qtdPorEmbalagem: 216 },
+        { codigo: 'INS02', item: 'Sacas', embalagem: 2, qtdPorEmbalagem: 5000 },
+        { codigo: 'INS03', item: 'Scuttles', embalagem: 1, qtdPorEmbalagem: 80 },
+        { codigo: 'INS04', item: 'Lacres plásticos', embalagem: 73, qtdPorEmbalagem: 1500 },
+        { codigo: 'INS05', item: 'Lacres de aço', embalagem: 8, qtdPorEmbalagem: 1000 }
+      ],
+      patrimonial: [
+        { codigo: 'PAT001', tipo: 'PDA', item: 'Coletor de Dados PDA', numeroSerie: 'SN-TC21001', modelo: 'Zebra TC21', setor: 'Operação HUB', status: 'Ativo', quantidade: 18 },
+        { codigo: 'PAT002', tipo: 'Impressora', item: 'Impressora Térmica Industrial', numeroSerie: 'SN-ZT23002', modelo: 'Zebra ZT230', setor: 'Expedição', status: 'Ativo', quantidade: 6 },
+        { codigo: 'PAT003', tipo: 'Paleteira', item: 'Paleteira Manual 2.5T', numeroSerie: 'SN-TM25003', modelo: 'Paletrans TM2500', setor: 'Docas', status: 'Ativo', quantidade: 4 }
+      ],
+      historico: [],
+      mesesHistorico: []
+    };
+
+    let state = {
+      etiquetas: [],
+      demais: [],
+      patrimonial: [],
+      historico: [],
+      mesesHistorico: []
+    };
+
+    let activeView = 'dashboard';
+    let isSidebarCollapsed = false;
+    let isCadastroAdminUnlocked = false;
+    let activeAdminSubTab = 'cadastro';
+    let activePatrimonialTab = 'consulta';
+    let selectedHistoricoMonth = 'TODOS';
+    let chartConsumoFMInstance = null;
+    let chartConsumoLMT1Instance = null;
+    let chartConsumoLMT3Instance = null;
+
+    // =========================================================================
+    // 3. UTILITÁRIOS DE DATA MENSAL E RETENÇÃO DE 12 MESES
+    // =========================================================================
+    function getCurrentMonthKey(dateObj = new Date()) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      return `${y}-${m}`;
+    }
+
+    function getLast12MonthKeys() {
+      const keys = [];
+      const now = new Date();
+      for (let i = 0; i < 12; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        keys.push(getCurrentMonthKey(d));
+      }
+      return keys;
+    }
+
+    function formatMonthLabel(monthKey) {
+      if (!monthKey || !monthKey.includes('-')) return monthKey || '-';
+      const [y, m] = monthKey.split('-');
+      const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      const idx = parseInt(m, 10) - 1;
+      return `${months[idx] || m}/${y}`;
+    }
+
+    function syncHistoricoMensalRetention() {
+      const valid12 = getLast12MonthKeys();
+      const validSet = new Set(valid12);
+      const currentMonth = getCurrentMonthKey();
+
+      state.historico = (state.historico || []).map(item => {
+        if (!item.mesRef) {
+          if (item.dataHora && item.dataHora.includes('/')) {
+            const parts = item.dataHora.split(' ')[0].split('/');
+            if (parts.length === 3) {
+              item.mesRef = `${parts[2]}-${parts[1].padStart(2, '0')}`;
+            }
+          }
+          if (!item.mesRef) item.mesRef = currentMonth;
+        }
+        return item;
+      }).filter(item => validSet.has(item.mesRef));
+
+      const existingMonths = new Set([
+        currentMonth,
+        ...(state.mesesHistorico || []).filter(m => validSet.has(m)),
+        ...state.historico.map(h => h.mesRef)
+      ]);
+
+      state.mesesHistorico = Array.from(existingMonths).sort((a, b) => b.localeCompare(a));
+    }
+
+    // =========================================================================
+    // 4. PERSISTÊNCIA EM MEMÓRIA + SINCRONIZAÇÃO NA NUVEM
+    // =========================================================================
+    function loadState() {
+      state = JSON.parse(JSON.stringify(INITIAL_DATA));
+      syncHistoricoMensalRetention();
+    }
+
+    function saveState() {
+      syncHistoricoMensalRetention();
+      if (window.__cloudSync && window.__cloudSync.enabled && typeof window.__cloudSync.saveToCloud === 'function') {
+        window.__cloudSync.saveToCloud({
+          ...state,
+          tiposPatrimonio: TIPOS_PATRIMONIO,
+          operadoresCadastrados: getPersistableUsersMap()
+        });
+      }
+    }
+
+    window.getCurrentInventoryState = function() {
+      syncHistoricoMensalRetention();
+      return {
+        ...state,
+        tiposPatrimonio: TIPOS_PATRIMONIO,
+        operadoresCadastrados: getPersistableUsersMap()
+      };
+    };
+
+    window.applyExternalState = function(cloudData) {
+      state.etiquetas = cloudData.etiquetas || [];
+      state.demais = cloudData.demais || [];
+      state.patrimonial = Array.isArray(cloudData.patrimonial) ? cloudData.patrimonial : JSON.parse(JSON.stringify(INITIAL_DATA.patrimonial));
+      if (Array.isArray(cloudData.tiposPatrimonio) && cloudData.tiposPatrimonio.length > 0) {
+        TIPOS_PATRIMONIO = Array.from(new Set([...DEFAULT_TIPOS_PATRIMONIO, ...cloudData.tiposPatrimonio]));
+        saveTiposPatrimonio();
+      }
+      if (cloudData.operadoresCadastrados && typeof cloudData.operadoresCadastrados === 'object') {
+        SYSTEM_USERS = { ...JSON.parse(JSON.stringify(DEFAULT_SYSTEM_USERS)), ...cloudData.operadoresCadastrados };
+        saveRegisteredOperators(getPersistableUsersMap());
+      }
+      state.historico = cloudData.historico || [];
+      state.mesesHistorico = cloudData.mesesHistorico || [];
+      syncHistoricoMensalRetention();
+      refreshAll();
+    };
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      const styles = {
+        success: 'bg-emerald-950/95 border-emerald-500/40 text-emerald-100',
+        error: 'bg-red-950/95 border-red-500/40 text-red-100',
+        warning: 'bg-amber-950/95 border-amber-500/40 text-amber-100'
+      };
+      const icons = {
+        success: 'check-circle-2',
+        error: 'alert-octagon',
+        warning: 'alert-triangle'
+      };
+
+      toast.className = `animate-toast pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-xl backdrop-blur text-xs sm:text-sm font-medium ${styles[type] || styles.success}`;
+      toast.innerHTML = `
+        <i data-lucide="${icons[type] || 'info'}" class="w-4 h-4 shrink-0"></i>
+        <span class="flex-1">${message}</span>
+      `;
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.25s ease';
+        setTimeout(() => toast.remove(), 250);
+      }, 3500);
+    }
+
+    function formatNumber(val) {
+      return Number(val || 0).toLocaleString('pt-BR');
+    }
+
+    function formatNowBR() {
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      return `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    }
+
+    // =========================================================================
+    // 5. NAVEGAÇÃO LATERAL E PORTAL ADMINISTRATIVO
+    // =========================================================================
+    function syncSidebarViewportHeight() {
+      const header = document.getElementById('main-header');
+      const sidebar = document.getElementById('left-sidebar');
+      if (!header || !sidebar) return;
+
+      if (window.innerWidth >= 1024) {
+        const headerHeight = header.offsetHeight;
+        sidebar.style.top = `${headerHeight}px`;
+        sidebar.style.height = `calc(100dvh - ${headerHeight}px)`;
+      } else {
+        sidebar.style.top = '';
+        sidebar.style.height = '';
+      }
+    }
+
+    window.addEventListener('resize', syncSidebarViewportHeight);
+
+    function toggleSidebarCollapse() {
+      isSidebarCollapsed = !isSidebarCollapsed;
+      const sidebar = document.getElementById('left-sidebar');
+      const scrollArea = document.getElementById('sidebar-scroll-area');
+      const collapseBar = document.getElementById('sidebar-collapse-bar');
+      const footer = document.getElementById('sidebar-footer');
+      const unitInfo = document.getElementById('sidebar-unit-info');
+      const icon = document.getElementById('icon-collapse-sidebar');
+      const btn = document.getElementById('btn-collapse-sidebar');
+
+      if (!sidebar) return;
+
+      if (isSidebarCollapsed) {
+        sidebar.classList.remove('w-72');
+        sidebar.classList.add('w-20');
+        scrollArea?.classList.replace('p-4', 'p-2.5');
+        collapseBar?.classList.replace('px-3.5', 'px-2');
+        collapseBar?.classList.replace('justify-end', 'justify-center');
+        footer?.classList.replace('p-3.5', 'p-2.5');
+        unitInfo?.classList.add('justify-center');
+        if (icon) icon.setAttribute('data-lucide', 'panel-left-open');
+        if (btn) btn.title = 'Expandir menu lateral';
+      } else {
+        sidebar.classList.remove('w-20');
+        sidebar.classList.add('w-72');
+        scrollArea?.classList.replace('p-2.5', 'p-4');
+        collapseBar?.classList.replace('px-2', 'px-3.5');
+        collapseBar?.classList.replace('justify-center', 'justify-end');
+        footer?.classList.replace('p-2.5', 'p-3.5');
+        unitInfo?.classList.remove('justify-center');
+        if (icon) icon.setAttribute('data-lucide', 'panel-left-close');
+        if (btn) btn.title = 'Recolher menu lateral';
+      }
+
+      document.querySelectorAll('.sidebar-label, .sidebar-group-title').forEach(el => {
+        el.classList.toggle('hidden', isSidebarCollapsed);
+      });
+
+      document.querySelectorAll('.sidebar-badge').forEach(badge => {
+        if (isSidebarCollapsed) {
+          badge.classList.add('hidden');
+        } else if (badge.id === 'sidebar-badge-baixo') {
+          const lowCount = getLowStockItems().length;
+          badge.classList.toggle('hidden', lowCount === 0);
+        } else {
+          badge.classList.remove('hidden');
+        }
+      });
+
+      applyNavButtonStyles();
+      lucide.createIcons();
+    }
+
+    function applyNavButtonStyles() {
+      const views = ['dashboard', 'movimentacao', 'etiquetas', 'demais', 'patrimonial', 'admin', 'historico'];
+      const alignCls = isSidebarCollapsed ? 'justify-center px-2.5' : 'justify-between px-3.5';
+
+      views.forEach(v => {
+        const navBtn = document.getElementById(`nav-btn-${v}`);
+        if (!navBtn) return;
+
+        const isHiddenPatrimonial = v === 'patrimonial' && !canAccessPatrimonial();
+        const mainSpan = navBtn.querySelector('.nav-item-main');
+        if (mainSpan) {
+          mainSpan.classList.toggle('justify-center', isSidebarCollapsed);
+        }
+
+        if (v === activeView) {
+          navBtn.className = `${isHiddenPatrimonial ? 'hidden ' : ''}nav-item w-full flex items-center ${alignCls} py-2.5 rounded-xl text-sm font-bold bg-orange-600 text-white shadow-sm transition`;
+        } else {
+          navBtn.className = `${isHiddenPatrimonial ? 'hidden ' : ''}nav-item w-full flex items-center ${alignCls} py-2.5 rounded-xl text-sm font-semibold text-slate-300 hover:bg-slate-800/80 hover:text-white transition`;
+        }
+      });
+    }
+
+    function toggleMobileSidebar() {
+      const sidebar = document.getElementById('left-sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      const isClosed = sidebar.classList.contains('-translate-x-full');
+      if (isClosed) {
+        if (isSidebarCollapsed) {
+          toggleSidebarCollapse();
+        }
+        sidebar.classList.remove('-translate-x-full');
+        backdrop.classList.remove('hidden');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('hidden');
+      }
+    }
+
+    function navigateTo(viewName) {
+      if (viewName === 'patrimonial' && !canAccessPatrimonial()) {
+        showToast('Acesso restrito ao Administrador, Líder ou Analista.', 'error');
+        return;
+      }
+
+      activeView = viewName;
+      const views = ['dashboard', 'movimentacao', 'etiquetas', 'demais', 'patrimonial', 'admin', 'historico'];
+      views.forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        if (el) el.classList.toggle('hidden', v !== viewName);
+      });
+      applyNavButtonStyles();
+
+      const sidebar = document.getElementById('left-sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      if (window.innerWidth < 1024 && sidebar && !sidebar.classList.contains('-translate-x-full')) {
+        sidebar.classList.add('-translate-x-full');
+        if (backdrop) backdrop.classList.add('hidden');
+      }
+
+      if (viewName === 'dashboard') {
+        renderDashboard();
+      } else if (viewName === 'patrimonial') {
+        switchPatrimonialTab(activePatrimonialTab);
+      } else if (viewName === 'admin' && isCadastroAdminUnlocked) {
+        switchAdminTab(activeAdminSubTab);
+      } else if (viewName === 'historico') {
+        renderHistoricoMonthTabs();
+        renderHistoricoTable();
+      }
+      lucide.createIcons();
+    }
+
+    function openAdminPortal() {
+      if (isCadastroAdminUnlocked) {
+        navigateTo('admin');
+        switchAdminTab(activeAdminSubTab);
+        return;
+      }
+      const modal = document.getElementById('admin-auth-modal');
+      const input = document.getElementById('input-admin-code');
+      const errorEl = document.getElementById('admin-code-error');
+      if (errorEl) errorEl.classList.add('hidden');
+      if (input) input.value = '';
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      setTimeout(() => input && input.focus(), 50);
+    }
+
+    function closeAdminAuthModal() {
+      const modal = document.getElementById('admin-auth-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function validarCodigoAdmin(event) {
+      event.preventDefault();
+      const input = document.getElementById('input-admin-code');
+      const errorEl = document.getElementById('admin-code-error');
+      const code = (input.value || '').trim();
+
+      if (code === ADMIN_ACCESS_CODE) {
+        isCadastroAdminUnlocked = true;
+        closeAdminAuthModal();
+        const headerBtn = document.getElementById('header-admin-btn');
+        if (headerBtn) {
+          headerBtn.className = 'inline-flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-sky-600 text-white border border-sky-400 shadow-sm transition active:scale-95';
+        }
+        updatePatrimonialAccessVisibility();
+        navigateTo('admin');
+        switchAdminTab('cadastro');
+        showToast('Modo Administrador ativado com sucesso.', 'success');
+      } else {
+        errorEl.classList.remove('hidden');
+        input.focus();
+      }
+    }
+
+    function bloquearCadastroAdmin() {
+      isCadastroAdminUnlocked = false;
+      const headerBtn = document.getElementById('header-admin-btn');
+      if (headerBtn) {
+        headerBtn.className = 'inline-flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 shadow-sm transition active:scale-95';
+      }
+      updatePatrimonialAccessVisibility();
+      navigateTo('dashboard');
+      showToast('Sessão administrativa encerrada.', 'warning');
+    }
+
+    function switchAdminTab(tab) {
+      activeAdminSubTab = tab;
+      const subCadastro = document.getElementById('admin-subview-cadastro');
+      const subEditar = document.getElementById('admin-subview-editar');
+      const subUsuarios = document.getElementById('admin-subview-usuarios');
+      const btnCadastro = document.getElementById('admin-tab-btn-cadastro');
+      const btnEditar = document.getElementById('admin-tab-btn-editar');
+      const btnUsuarios = document.getElementById('admin-tab-btn-usuarios');
+
+      const activeClass = 'inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-bold border-b-2 border-sky-500 bg-slate-900 text-sky-400 transition';
+      const inactiveClass = 'inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition';
+
+      subCadastro?.classList.toggle('hidden', tab !== 'cadastro');
+      subEditar?.classList.toggle('hidden', tab !== 'editar');
+      subUsuarios?.classList.toggle('hidden', tab !== 'usuarios');
+
+      if (btnCadastro) btnCadastro.className = tab === 'cadastro' ? activeClass : inactiveClass;
+      if (btnEditar) btnEditar.className = tab === 'editar' ? activeClass : inactiveClass;
+      if (btnUsuarios) btnUsuarios.className = tab === 'usuarios' ? activeClass : inactiveClass;
+
+      if (tab === 'editar') {
+        renderAdminDatabaseEditor();
+      } else if (tab === 'usuarios') {
+        renderAdminUsersManager();
+      }
+      lucide.createIcons();
+    }
+
+    // =========================================================================
+    // 6. DASHBOARD INICIAL (ALERTAS DE ESTOQUE BAIXO + GRÁFICO POR EQUIPE)
+    // =========================================================================
+    function getLowStockItems() {
+      const lowEtiquetas = state.etiquetas
+        .filter(e => Number(e.qtdCaixas) <= 5)
+        .map(e => ({
+          codigo: e.codigo,
+          nome: e.descricao,
+          detalhe: `${e.item} • ${e.dimensoes || '-'}`,
+          saldo: Number(e.qtdCaixas),
+          unidade: 'caixas',
+          categoria: 'Etiquetas e Ribbon'
+        }));
+
+      const lowDemais = state.demais
+        .filter(d => Number(d.embalagem) <= 5)
+        .map(d => ({
+          codigo: d.codigo,
+          nome: d.item,
+          detalhe: 'Demais insumos',
+          saldo: Number(d.embalagem),
+          unidade: 'emb.',
+          categoria: 'Demais insumos'
+        }));
+
+      return [...lowEtiquetas, ...lowDemais].sort((a, b) => a.saldo - b.saldo);
+    }
+
+    function renderDashboard() {
+      const lowItems = getLowStockItems();
+      const countPill = document.getElementById('dashboard-alert-count-pill');
+      const sidebarBadge = document.getElementById('sidebar-badge-baixo');
+      const movAlertBadge = document.getElementById('alerta-estoque-baixo-badge');
+      const movAlertText = document.getElementById('alerta-estoque-baixo-texto');
+      const listContainer = document.getElementById('dashboard-low-stock-list');
+
+      if (countPill) countPill.textContent = lowItems.length;
+      if (sidebarBadge) {
+        sidebarBadge.textContent = lowItems.length;
+        sidebarBadge.classList.toggle('hidden', isSidebarCollapsed || lowItems.length === 0);
+      }
+      if (movAlertBadge && movAlertText) {
+        movAlertText.textContent = `${lowItems.length} ${lowItems.length === 1 ? 'item com estoque baixo' : 'itens com estoque baixo'}`;
+        movAlertBadge.classList.toggle('hidden', lowItems.length === 0);
+      }
+
+      if (listContainer) {
+        if (lowItems.length === 0) {
+          listContainer.innerHTML = `
+            <div class="col-span-full flex items-center gap-3 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-sm">
+              <i data-lucide="check-circle-2" class="w-5 h-5 shrink-0"></i>
+              <span>Nenhum insumo em nível crítico no momento. Todos os itens estão com mais de 5 caixas/embalagens.</span>
+            </div>
+          `;
+        } else {
+          listContainer.innerHTML = lowItems.map(item => `
+            <div class="flex items-center justify-between gap-3 p-4 rounded-xl bg-slate-950/90 border ${item.saldo === 0 ? 'border-red-500/40' : 'border-amber-500/30'}">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-slate-800 text-orange-300">${item.codigo}</span>
+                  <span class="text-xs font-extrabold ${item.saldo === 0 ? 'text-red-400' : 'text-amber-400'}">
+                    ${item.saldo === 0 ? 'ZERADO' : `${item.saldo} ${item.unidade}`}
+                  </span>
+                </div>
+                <p class="text-sm font-bold text-white truncate mt-1" title="${item.nome}">${item.nome}</p>
+                <p class="text-xs text-slate-400 truncate">${item.detalhe}</p>
+              </div>
+              <button
+                type="button"
+                onclick="selecionarParaMovimentar('${item.codigo}', 'Inclusão')"
+                class="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition active:scale-95"
+              >
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Repor</span>
+              </button>
+            </div>
+          `).join('');
+        }
+      }
+
+      renderDashboardCharts();
+      lucide.createIcons();
+    }
+
+    function renderDashboardCharts() {
+      if (typeof Chart === 'undefined') return;
+
+      const buildTeamChart = (teamName, canvasId, badgeId, colorHex, prevInstance) => {
+        const ctx = document.getElementById(canvasId);
+        const badgeEl = document.getElementById(badgeId);
+        if (!ctx) return prevInstance;
+
+        const consumoMap = {};
+        let totalRetirado = 0;
+
+        state.historico.forEach(h => {
+          if (h.operacao === 'Retirada' && (h.responsavel || '').trim() === teamName) {
+            const label = `${h.codigo} (${(h.descricao || '').slice(0, 16)})`;
+            const qtd = Number(h.quantidade || 0);
+            consumoMap[label] = (consumoMap[label] || 0) + qtd;
+            totalRetirado += qtd;
+          }
+        });
+
+        if (badgeEl) {
+          badgeEl.textContent = `${formatNumber(totalRetirado)} cx/emb.`;
+        }
+
+        const labels = Object.keys(consumoMap);
+        const hasData = labels.length > 0;
+        const labelsFinal = hasData ? labels : ['Sem retiradas'];
+        const valuesFinal = hasData ? labels.map(l => consumoMap[l]) : [0];
+
+        if (prevInstance) prevInstance.destroy();
+
+        return new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labelsFinal,
+            datasets: [
+              {
+                label: `Consumo ${teamName}`,
+                data: valuesFinal,
+                backgroundColor: colorHex,
+                borderRadius: 6,
+                maxBarThickness: 38
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (context) => ` Retirado: ${formatNumber(context.parsed.y)} cx/emb.`
+                }
+              }
+            },
+            scales: {
+              x: {
+                ticks: { color: '#94a3b8', font: { size: 11 } },
+                grid: { color: '#1e293b' }
+              },
+              y: {
+                beginAtZero: true,
+                ticks: { color: '#94a3b8', precision: 0 },
+                grid: { color: '#1e293b' }
+              }
+            }
+          }
+        });
+      };
+
+      chartConsumoFMInstance = buildTeamChart('FM', 'chart-consumo-fm', 'badge-total-fm', '#ea580c', chartConsumoFMInstance);
+      chartConsumoLMT1Instance = buildTeamChart('LM T1', 'chart-consumo-lmt1', 'badge-total-lmt1', '#0284c7', chartConsumoLMT1Instance);
+      chartConsumoLMT3Instance = buildTeamChart('LM T3', 'chart-consumo-lmt3', 'badge-total-lmt3', '#10b981', chartConsumoLMT3Instance);
+    }
+
+    // =========================================================================
+    // 7. MOVIMENTAÇÃO RÁPIDA (CONTROLE)
+    // =========================================================================
+    function populateMovimentacaoSelect() {
+      const select = document.getElementById('mov-item-select');
+      if (!select) return;
+      const currentVal = select.value;
+
+      let html = '<option value="" disabled selected>Selecione o código ou descrição do item...</option>';
+      html += '<optgroup label="Etiquetas e Ribbon">';
+      state.etiquetas.forEach(item => {
+        html += `<option value="${item.codigo}">[${item.codigo}] ${item.descricao} (${item.dimensoes || '-'}) — Saldo: ${item.qtdCaixas} cx</option>`;
+      });
+      html += '</optgroup>';
+
+      html += '<optgroup label="Demais Insumos">';
+      state.demais.forEach(item => {
+        html += `<option value="${item.codigo}">[${item.codigo}] ${item.item} — Saldo: ${item.embalagem} emb.</option>`;
+      });
+      html += '</optgroup>';
+
+      select.innerHTML = html;
+      if (currentVal && [...state.etiquetas, ...state.demais].some(i => i.codigo === currentVal)) {
+        select.value = currentVal;
+      }
+      updateMovPreview();
+    }
+
+    function setOperacao(op) {
+      document.getElementById('mov-operacao').value = op;
+      const btnInc = document.getElementById('btn-op-inclusao');
+      const btnRet = document.getElementById('btn-op-retirada');
+
+      if (op === 'Inclusão') {
+        btnInc.className = 'flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold transition bg-emerald-600 text-white shadow-sm';
+        btnRet.className = 'flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold transition text-slate-400 hover:text-slate-100';
+      } else {
+        btnRet.className = 'flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold transition bg-red-600 text-white shadow-sm';
+        btnInc.className = 'flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold transition text-slate-400 hover:text-slate-100';
+      }
+      updateMovPreview();
+    }
+
+    function selecionarParaMovimentar(codigo, operacao = 'Retirada') {
+      navigateTo('movimentacao');
+      setOperacao(operacao);
+      const select = document.getElementById('mov-item-select');
+      if (select) {
+        select.value = codigo;
+        updateMovPreview();
+      }
+      const qtdInput = document.getElementById('mov-quantidade');
+      if (qtdInput) {
+        qtdInput.value = 1;
+        updateMovPreview();
+        qtdInput.focus();
+      }
+    }
+
+    function updateMovPreview() {
+      const previewEl = document.getElementById('mov-preview-info');
+      const codigo = document.getElementById('mov-item-select')?.value;
+      const operacao = document.getElementById('mov-operacao')?.value;
+      const qtd = parseInt(document.getElementById('mov-quantidade')?.value, 10) || 0;
+
+      if (!previewEl) return;
+      if (!codigo) {
+        previewEl.innerHTML = `
+          <i data-lucide="info" class="w-4 h-4 text-orange-400 shrink-0"></i>
+          <span>Selecione um item e informe a quantidade para visualizar o saldo resultante.</span>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      const etq = state.etiquetas.find(i => i.codigo === codigo);
+      const dem = state.demais.find(i => i.codigo === codigo);
+      const item = etq || dem;
+      if (!item) return;
+
+      const saldoAtual = etq ? Number(etq.qtdCaixas) : Number(dem.embalagem);
+      const fator = etq ? Number(etq.itensPorCaixa) : Number(dem.qtdPorEmbalagem);
+      const unidade = etq ? 'caixas' : 'embalagens';
+      const novoSaldo = operacao === 'Inclusão' ? saldoAtual + qtd : saldoAtual - qtd;
+
+      if (novoSaldo < 0) {
+        previewEl.innerHTML = `
+          <i data-lucide="alert-triangle" class="w-4 h-4 text-red-400 shrink-0"></i>
+          <span class="text-red-300 font-semibold">Saldo insuficiente! Disponível: ${saldoAtual} ${unidade} (solicitado: ${qtd}).</span>
+        `;
+      } else {
+        previewEl.innerHTML = `
+          <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400 shrink-0"></i>
+          <span>Saldo atual: <strong class="text-white">${saldoAtual} ${unidade}</strong> → Novo saldo: <strong class="text-orange-300">${novoSaldo} ${unidade}</strong> (${formatNumber(novoSaldo * fator)} unidades individuais).</span>
+        `;
+      }
+      lucide.createIcons();
+    }
+
+    document.getElementById('mov-item-select')?.addEventListener('change', updateMovPreview);
+    document.getElementById('mov-quantidade')?.addEventListener('input', updateMovPreview);
+
+    document.getElementById('form-movimentacao')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const responsavel = document.getElementById('mov-responsavel').value;
+      const operacao = document.getElementById('mov-operacao').value;
+      const codigo = document.getElementById('mov-item-select').value;
+      const qtd = parseInt(document.getElementById('mov-quantidade').value, 10);
+
+      if (!responsavel || !codigo || isNaN(qtd) || qtd <= 0) {
+        showToast('Preencha todos os campos obrigatórios corretamente.', 'error');
+        return;
+      }
+
+      const operadorUsuario = currentLoggedUser ? currentLoggedUser.username : responsavel;
+      const operadorNome = currentLoggedUser ? currentLoggedUser.nome : responsavel;
+      const operadorFuncao = currentLoggedUser ? currentLoggedUser.funcao : 'Operador';
+
+      const etq = state.etiquetas.find(i => i.codigo === codigo);
+      const dem = state.demais.find(i => i.codigo === codigo);
+
+      if (etq) {
+        if (operacao === 'Retirada' && Number(etq.qtdCaixas) < qtd) {
+          showToast(`Estoque insuficiente para ${codigo}. Saldo atual: ${etq.qtdCaixas} cx.`, 'error');
+          return;
+        }
+        etq.qtdCaixas = operacao === 'Inclusão' ? Number(etq.qtdCaixas) + qtd : Number(etq.qtdCaixas) - qtd;
+        state.historico.unshift({
+          dataHora: formatNowBR(),
+          mesRef: getCurrentMonthKey(),
+          codigo: etq.codigo,
+          descricao: etq.descricao,
+          dimensoes: etq.dimensoes || '-',
+          quantidade: qtd,
+          operacao,
+          operadorUsuario,
+          operadorNome,
+          operadorFuncao,
+          responsavel,
+          categoria: 'Etiquetas e Ribbon'
+        });
+      } else if (dem) {
+        if (operacao === 'Retirada' && Number(dem.embalagem) < qtd) {
+          showToast(`Estoque insuficiente para ${codigo}. Saldo atual: ${dem.embalagem} emb.`, 'error');
+          return;
+        }
+        dem.embalagem = operacao === 'Inclusão' ? Number(dem.embalagem) + qtd : Number(dem.embalagem) - qtd;
+        state.historico.unshift({
+          dataHora: formatNowBR(),
+          mesRef: getCurrentMonthKey(),
+          codigo: dem.codigo,
+          descricao: dem.item,
+          dimensoes: '-',
+          quantidade: qtd,
+          operacao,
+          operadorUsuario,
+          operadorNome,
+          operadorFuncao,
+          responsavel,
+          categoria: 'Demais insumos'
+        });
+      }
+
+      saveState();
+      refreshAll();
+      document.getElementById('mov-quantidade').value = '';
+      updateMovPreview();
+      showToast(`${operacao} de ${qtd} un. registrada para ${codigo} (${operadorNome} • ${responsavel}).`, 'success');
+    });
+
+    // =========================================================================
+    // 8. PILAR INDEPENDENTE: PATRIMONIAL (CONSULTA + EDIÇÃO E CADASTRO)
+    // =========================================================================
+    const STORAGE_KEY_TIPOS_PAT = 'hub_lmg44_tipos_patrimonio_v1';
+    const DEFAULT_TIPOS_PATRIMONIO = [
+      'PDA',
+      'Impressora',
+      'Monitor',
+      'Teclado',
+      'Mouse',
+      'Leitor Óptico',
+      'Computador / Notebook',
+      'Paleteira',
+      'Carrinho / Gaiola',
+      'Balança',
+      'Mobiliário',
+      'Outros'
+    ];
+    let TIPOS_PATRIMONIO = [...DEFAULT_TIPOS_PATRIMONIO];
+
+    function loadTiposPatrimonio() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_TIPOS_PAT);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            TIPOS_PATRIMONIO = Array.from(new Set([...DEFAULT_TIPOS_PATRIMONIO, ...parsed]));
+          }
+        }
+      } catch (e) {}
+    }
+
+    function saveTiposPatrimonio() {
+      try {
+        localStorage.setItem(STORAGE_KEY_TIPOS_PAT, JSON.stringify(TIPOS_PATRIMONIO));
+      } catch (e) {}
+    }
+
+    function renderPatrimonioTipoSelect(selectedValue = null) {
+      const select = document.getElementById('pat-new-tipo');
+      if (select) {
+        const prevVal = selectedValue || select.value || TIPOS_PATRIMONIO[0];
+        const optionsHtml = TIPOS_PATRIMONIO.map(t => `<option value="${t}">${t}</option>`).join('');
+        select.innerHTML = `${optionsHtml}<option value="__ADD_NEW__" class="font-bold text-amber-300">+ Adicionar novo tipo...</option>`;
+        if (TIPOS_PATRIMONIO.includes(prevVal)) {
+          select.value = prevVal;
+        } else {
+          select.value = TIPOS_PATRIMONIO[0];
+        }
+      }
+
+      const filterSelect = document.getElementById('filter-tipo-patrimonial');
+      if (filterSelect) {
+        const currentFilter = filterSelect.value || 'TODOS';
+        const filterOptions = TIPOS_PATRIMONIO.map(t => `<option value="${t}">${t}</option>`).join('');
+        filterSelect.innerHTML = `<option value="TODOS">Todos os Tipos</option>${filterOptions}`;
+        if (currentFilter === 'TODOS' || TIPOS_PATRIMONIO.includes(currentFilter)) {
+          filterSelect.value = currentFilter;
+        } else {
+          filterSelect.value = 'TODOS';
+        }
+      }
+    }
+
+    function onPatrimonioTipoSelectChange(selectEl) {
+      const wrapper = document.getElementById('pat-custom-tipo-wrapper');
+      const input = document.getElementById('pat-custom-tipo-input');
+      if (!wrapper || !input) return;
+
+      if (selectEl.value === '__ADD_NEW__') {
+        wrapper.classList.remove('hidden');
+        input.value = '';
+        input.focus();
+      } else {
+        wrapper.classList.add('hidden');
+      }
+    }
+
+    function confirmarNovoTipoPatrimonio() {
+      const input = document.getElementById('pat-custom-tipo-input');
+      const wrapper = document.getElementById('pat-custom-tipo-wrapper');
+      const select = document.getElementById('pat-new-tipo');
+      if (!input || !wrapper || !select) return;
+
+      const novoTipo = (input.value || '').trim();
+      if (!novoTipo) {
+        showToast('Digite o nome do novo tipo de patrimônio.', 'error');
+        input.focus();
+        return;
+      }
+
+      const existente = TIPOS_PATRIMONIO.find(t => t.toLowerCase() === novoTipo.toLowerCase());
+      const tipoFinal = existente || novoTipo;
+
+      if (!existente) {
+        const outrosIdx = TIPOS_PATRIMONIO.indexOf('Outros');
+        if (outrosIdx >= 0) {
+          TIPOS_PATRIMONIO.splice(outrosIdx, 0, tipoFinal);
+        } else {
+          TIPOS_PATRIMONIO.push(tipoFinal);
+        }
+        saveTiposPatrimonio();
+        saveState();
+      }
+
+      renderPatrimonioTipoSelect(tipoFinal);
+      renderPatrimonialTable();
+      renderPatrimonialEditTable();
+      wrapper.classList.add('hidden');
+      input.value = '';
+      showToast(`Tipo "${tipoFinal}" disponível no menu suspenso!`, 'success');
+    }
+
+    function switchPatrimonialTab(tab) {
+      activePatrimonialTab = tab;
+      const subConsulta = document.getElementById('pat-subview-consulta');
+      const subEdicao = document.getElementById('pat-subview-edicao');
+      const btnConsulta = document.getElementById('pat-tab-btn-consulta');
+      const btnEdicao = document.getElementById('pat-tab-btn-edicao');
+
+      const activeCls = 'inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-bold border-b-2 border-amber-500 bg-slate-900 text-amber-400 transition';
+      const inactiveCls = 'inline-flex items-center gap-2 px-4 py-2.5 rounded-t-xl text-xs sm:text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition';
+
+      if (subConsulta) subConsulta.classList.toggle('hidden', tab !== 'consulta');
+      if (subEdicao) subEdicao.classList.toggle('hidden', tab !== 'edicao');
+      if (btnConsulta) btnConsulta.className = tab === 'consulta' ? activeCls : inactiveCls;
+      if (btnEdicao) btnEdicao.className = tab === 'edicao' ? activeCls : inactiveCls;
+
+      if (tab === 'consulta') {
+        renderPatrimonialTable();
+      } else {
+        renderPatrimonialEditTable();
+      }
+      lucide.createIcons();
+    }
+
+    function renderPatrimonialTable() {
+      const tbody = document.getElementById('tbody-patrimonial');
+      if (!tbody) return;
+
+      if (!canAccessPatrimonial()) {
+        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-red-400 font-semibold">Acesso restrito ao Administrador, Líder ou Analista.</td></tr>`;
+        return;
+      }
+
+      const query = (document.getElementById('search-patrimonial')?.value || '').toLowerCase().trim();
+      const tipoFiltro = document.getElementById('filter-tipo-patrimonial')?.value || 'TODOS';
+      const statusFiltro = document.getElementById('filter-status-patrimonial')?.value || 'TODOS';
+
+      const filtered = (state.patrimonial || []).filter(item => {
+        const itemTipo = item.tipo || 'Outros';
+        if (tipoFiltro !== 'TODOS' && itemTipo !== tipoFiltro) return false;
+        if (statusFiltro !== 'TODOS' && item.status !== statusFiltro) return false;
+        if (query) {
+          const serie = item.numeroSerie || item.serieModelo || '';
+          const mod = item.modelo || '';
+          const matchStr = `${item.codigo} ${itemTipo} ${item.item} ${serie} ${mod} ${item.setor || ''} ${item.status || ''}`.toLowerCase();
+          if (!matchStr.includes(query)) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-8 text-center text-slate-400">Nenhum bem patrimonial encontrado com os filtros atuais.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(item => {
+        const statusBadge = item.status === 'Ativo'
+          ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+          : item.status === 'Em Manutenção'
+            ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+            : 'bg-red-500/15 text-red-300 border border-red-500/30';
+
+        const serieVal = item.numeroSerie !== undefined ? item.numeroSerie : (item.serieModelo || '-');
+        const modeloVal = item.modelo !== undefined ? item.modelo : '-';
+
+        return `
+          <tr class="hover:bg-slate-800/50 transition">
+            <td class="px-4 py-3 font-mono font-bold text-amber-300 whitespace-nowrap">${item.codigo}</td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">${item.tipo || 'Outros'}</span>
+            </td>
+            <td class="px-4 py-3 font-medium text-white">${item.item}</td>
+            <td class="px-4 py-3 font-mono text-xs text-slate-300 whitespace-nowrap">${serieVal || '-'}</td>
+            <td class="px-4 py-3 text-slate-300 whitespace-nowrap">${modeloVal || '-'}</td>
+            <td class="px-4 py-3 text-slate-300 whitespace-nowrap">${item.setor || '-'}</td>
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusBadge}">${item.status || 'Ativo'}</span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function adicionarItemPatrimonial(event) {
+      event.preventDefault();
+      if (!canAccessPatrimonial()) {
+        showToast('Acesso restrito ao Administrador, Líder ou Analista.', 'error');
+        return;
+      }
+
+      const codigo = (document.getElementById('pat-new-cod').value || '').trim().toUpperCase();
+      let tipo = document.getElementById('pat-new-tipo').value;
+      const numeroSerie = (document.getElementById('pat-new-serie').value || '').trim() || '-';
+      const modelo = (document.getElementById('pat-new-modelo').value || '').trim() || '-';
+      const setor = (document.getElementById('pat-new-setor').value || '').trim() || '-';
+      const status = document.getElementById('pat-new-status').value || 'Ativo';
+
+      if (tipo === '__ADD_NEW__') {
+        const customTipo = (document.getElementById('pat-custom-tipo-input')?.value || '').trim();
+        if (!customTipo) {
+          showToast('Informe o nome do novo tipo de patrimônio.', 'error');
+          return;
+        }
+        tipo = customTipo;
+        if (!TIPOS_PATRIMONIO.includes(tipo)) {
+          const outrosIdx = TIPOS_PATRIMONIO.indexOf('Outros');
+          if (outrosIdx >= 0) TIPOS_PATRIMONIO.splice(outrosIdx, 0, tipo);
+          else TIPOS_PATRIMONIO.push(tipo);
+          saveTiposPatrimonio();
+        }
+      }
+
+      if (!codigo) {
+        showToast('Informe o código ou plaqueta do bem patrimonial.', 'error');
+        return;
+      }
+
+      const existe = (state.patrimonial || []).some(p => p.codigo.toUpperCase() === codigo);
+      if (existe) {
+        showToast(`O código patrimonial "${codigo}" já está cadastrado.`, 'error');
+        return;
+      }
+
+      state.patrimonial.push({
+        codigo,
+        tipo,
+        item: tipo,
+        numeroSerie,
+        modelo,
+        setor,
+        status
+      });
+
+      saveState();
+      refreshAll();
+      document.getElementById('form-novo-patrimonial')?.reset();
+      document.getElementById('pat-custom-tipo-wrapper')?.classList.add('hidden');
+      renderPatrimonioTipoSelect(tipo);
+      showToast(`Bem patrimonial ${codigo} cadastrado com sucesso!`, 'success');
+    }
+
+    function renderPatrimonialEditTable() {
+      const tbody = document.getElementById('tbody-patrimonial-edit');
+      if (!tbody) return;
+
+      if (!canAccessPatrimonial()) {
+        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-red-400 font-semibold">Acesso restrito ao Administrador, Líder ou Analista.</td></tr>`;
+        return;
+      }
+
+      const query = (document.getElementById('search-patrimonial-edit')?.value || '').toLowerCase().trim();
+      const list = (state.patrimonial || [])
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) => {
+          if (!query) return true;
+          const serie = item.numeroSerie || item.serieModelo || '';
+          const mod = item.modelo || '';
+          return `${item.codigo} ${item.tipo || ''} ${item.item} ${serie} ${mod} ${item.setor || ''} ${item.status || ''}`.toLowerCase().includes(query);
+        });
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-400">Nenhum bem patrimonial encontrado.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map(({ item, idx }) => {
+        const serieVal = item.numeroSerie !== undefined ? item.numeroSerie : (item.serieModelo || '');
+        const modeloVal = item.modelo !== undefined ? item.modelo : '';
+        const tiposOpts = TIPOS_PATRIMONIO.map(t => `<option value="${t}" ${(item.tipo || 'Outros') === t ? 'selected' : ''}>${t}</option>`).join('');
+
+        return `
+          <tr>
+            <td class="px-2 py-2"><input id="pat-edit-cod-${idx}" value="${item.codigo}" class="w-24 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs font-mono text-amber-300 uppercase" /></td>
+            <td class="px-2 py-2">
+              <select id="pat-edit-tipo-${idx}" class="px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs text-white">
+                ${tiposOpts}
+              </select>
+            </td>
+            <td class="px-2 py-2"><input id="pat-edit-serie-${idx}" value="${serieVal}" class="w-28 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs font-mono text-slate-200" /></td>
+            <td class="px-2 py-2"><input id="pat-edit-modelo-${idx}" value="${modeloVal}" class="w-32 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs text-slate-200" /></td>
+            <td class="px-2 py-2"><input id="pat-edit-setor-${idx}" value="${item.setor || ''}" class="w-32 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs text-slate-200" /></td>
+            <td class="px-2 py-2">
+              <select id="pat-edit-status-${idx}" class="px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs text-white">
+                <option value="Ativo" ${item.status === 'Ativo' ? 'selected' : ''}>Ativo</option>
+                <option value="Em Manutenção" ${item.status === 'Em Manutenção' ? 'selected' : ''}>Em Manutenção</option>
+                <option value="Baixado" ${item.status === 'Baixado' ? 'selected' : ''}>Baixado</option>
+              </select>
+            </td>
+            <td class="px-2 py-2 text-center whitespace-nowrap">
+              <div class="inline-flex items-center gap-1">
+                <button type="button" onclick="savePatrimonialEditRow(${idx})" class="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold transition">Salvar</button>
+                <button type="button" onclick="deletePatrimonialRow(${idx})" title="Excluir patrimônio" class="p-1.5 rounded bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white transition">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function savePatrimonialEditRow(idx) {
+      if (!canAccessPatrimonial() || !state.patrimonial[idx]) return;
+
+      const novoCod = (document.getElementById(`pat-edit-cod-${idx}`).value || '').trim().toUpperCase();
+      const novoTipo = document.getElementById(`pat-edit-tipo-${idx}`).value;
+      const novaSerie = (document.getElementById(`pat-edit-serie-${idx}`).value || '').trim() || '-';
+      const novoModelo = (document.getElementById(`pat-edit-modelo-${idx}`).value || '').trim() || '-';
+      const novoSetor = (document.getElementById(`pat-edit-setor-${idx}`).value || '').trim() || '-';
+      const novoStatus = document.getElementById(`pat-edit-status-${idx}`).value;
+
+      if (!novoCod) {
+        showToast('Código / Plaqueta não pode ficar vazio.', 'error');
+        return;
+      }
+
+      const prev = state.patrimonial[idx];
+      const novoItemNome = (!prev.item || prev.item === prev.tipo) ? novoTipo : prev.item;
+
+      state.patrimonial[idx] = {
+        codigo: novoCod,
+        tipo: novoTipo,
+        item: novoItemNome,
+        numeroSerie: novaSerie,
+        modelo: novoModelo,
+        setor: novoSetor,
+        status: novoStatus
+      };
+
+      saveState();
+      refreshAll();
+      showToast(`Patrimônio ${novoCod} atualizado com sucesso.`, 'success');
+    }
+
+    function deletePatrimonialRow(idx) {
+      if (!canAccessPatrimonial() || !state.patrimonial[idx]) return;
+      const removido = state.patrimonial[idx];
+      state.patrimonial.splice(idx, 1);
+      saveState();
+      refreshAll();
+      showToast(`Bem patrimonial ${removido.codigo} excluído.`, 'warning');
+    }
+
+    // =========================================================================
+    // 9. TABELAS DE CATÁLOGO (ETIQUETAS E RIBBON + DEMAIS INSUMOS)
+    // =========================================================================
+    function populateEtiquetasDimensoesFilter() {
+      const select = document.getElementById('filter-dimensoes-etiqueta');
+      if (!select) return;
+
+      const currentVal = select.value || 'TODAS';
+      const dimensoesUnicas = Array.from(
+        new Set(
+          (state.etiquetas || [])
+            .map(i => (i.dimensoes || '').trim())
+            .filter(d => d && d !== '-')
+        )
+      ).sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true }));
+
+      select.innerHTML = `<option value="TODAS">Todas as Dimensões</option>` +
+        dimensoesUnicas.map(dim => `<option value="${dim}">${dim}</option>`).join('');
+
+      if (currentVal === 'TODAS' || dimensoesUnicas.includes(currentVal)) {
+        select.value = currentVal;
+      } else {
+        select.value = 'TODAS';
+      }
+    }
+
+    function renderEtiquetasTable() {
+      const tbody = document.getElementById('tbody-etiquetas');
+      if (!tbody) return;
+
+      const query = (document.getElementById('search-etiquetas')?.value || '').toLowerCase().trim();
+      const tipoFiltro = document.getElementById('filter-tipo-etiqueta')?.value || 'TODOS';
+      const dimensoesFiltro = document.getElementById('filter-dimensoes-etiqueta')?.value || 'TODAS';
+      const apenasBaixo = document.getElementById('filter-baixo-etiqueta')?.checked || false;
+
+      const filtered = state.etiquetas.filter(item => {
+        if (tipoFiltro !== 'TODOS' && item.item !== tipoFiltro) return false;
+        if (dimensoesFiltro !== 'TODAS' && (item.dimensoes || '').trim() !== dimensoesFiltro) return false;
+        if (apenasBaixo && Number(item.qtdCaixas) > 5) return false;
+        if (query) {
+          const matchStr = `${item.codigo} ${item.item} ${item.descricao} ${item.dimensoes || ''} ${item.cor || ''}`.toLowerCase();
+          if (!matchStr.includes(query)) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="px-4 py-8 text-center text-slate-400">Nenhum item encontrado com os filtros atuais.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(item => {
+        const totalItens = Number(item.qtdCaixas) * Number(item.itensPorCaixa);
+        const isLow = Number(item.qtdCaixas) <= 5;
+        const badgeTipo = item.item === 'Ribbon'
+          ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+          : 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30';
+
+        return `
+          <tr class="hover:bg-slate-800/50 transition ${isLow ? 'bg-amber-950/20' : ''}">
+            <td class="px-4 py-3 font-mono font-bold text-orange-300 whitespace-nowrap">${item.codigo}</td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeTipo}">${item.item}</span>
+            </td>
+            <td class="px-4 py-3 font-medium text-white">${item.descricao}</td>
+            <td class="px-4 py-3 text-slate-300 whitespace-nowrap">${item.dimensoes || '-'}</td>
+            <td class="px-4 py-3 text-slate-300 whitespace-nowrap">${item.cor || '-'}</td>
+            <td class="px-4 py-3 text-right font-bold whitespace-nowrap ${isLow ? 'text-amber-400' : 'text-white'}">
+              ${formatNumber(item.qtdCaixas)}
+              ${isLow ? '<span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">BAIXO</span>' : ''}
+            </td>
+            <td class="px-4 py-3 text-right text-slate-300 whitespace-nowrap">${formatNumber(item.itensPorCaixa)}</td>
+            <td class="px-4 py-3 text-right font-extrabold text-orange-300 bg-orange-500/5 whitespace-nowrap">${formatNumber(totalItens)}</td>
+            <td class="px-4 py-3 text-right text-slate-300 whitespace-nowrap">${formatNumber(item.qtdPallets)}</td>
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+              <div class="inline-flex items-center gap-1.5">
+                <button type="button" onclick="selecionarParaMovimentar('${item.codigo}', 'Inclusão')" title="Registrar Inclusão" class="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 transition">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                </button>
+                <button type="button" onclick="selecionarParaMovimentar('${item.codigo}', 'Retirada')" title="Registrar Retirada" class="p-1.5 rounded-lg bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 transition">
+                  <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function renderDemaisTable() {
+      const tbody = document.getElementById('tbody-demais');
+      if (!tbody) return;
+
+      const query = (document.getElementById('search-demais')?.value || '').toLowerCase().trim();
+      const apenasBaixo = document.getElementById('filter-baixo-demais')?.checked || false;
+
+      const filtered = state.demais.filter(item => {
+        if (apenasBaixo && Number(item.embalagem) > 5) return false;
+        if (query) {
+          const matchStr = `${item.codigo} ${item.item}`.toLowerCase();
+          if (!matchStr.includes(query)) return false;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-400">Nenhum insumo encontrado com os filtros atuais.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(item => {
+        const total = Number(item.embalagem) * Number(item.qtdPorEmbalagem);
+        const isLow = Number(item.embalagem) <= 5;
+        return `
+          <tr class="hover:bg-slate-800/50 transition ${isLow ? 'bg-amber-950/20' : ''}">
+            <td class="px-4 py-3 font-mono font-bold text-orange-300 whitespace-nowrap">${item.codigo}</td>
+            <td class="px-4 py-3 font-medium text-white">${item.item}</td>
+            <td class="px-4 py-3 text-right font-bold whitespace-nowrap ${isLow ? 'text-amber-400' : 'text-white'}">
+              ${formatNumber(item.embalagem)}
+              ${isLow ? '<span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300">BAIXO</span>' : ''}
+            </td>
+            <td class="px-4 py-3 text-right text-slate-300 whitespace-nowrap">${formatNumber(item.qtdPorEmbalagem)}</td>
+            <td class="px-4 py-3 text-right font-extrabold text-orange-300 bg-orange-500/5 whitespace-nowrap">${formatNumber(total)}</td>
+            <td class="px-4 py-3 text-center whitespace-nowrap">
+              <div class="inline-flex items-center gap-1.5">
+                <button type="button" onclick="selecionarParaMovimentar('${item.codigo}', 'Inclusão')" title="Registrar Inclusão" class="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 transition">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                </button>
+                <button type="button" onclick="selecionarParaMovimentar('${item.codigo}', 'Retirada')" title="Registrar Retirada" class="p-1.5 rounded-lg bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30 transition">
+                  <i data-lucide="minus" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function renderAdminUsersManager() {
+      const tbody = document.getElementById('tbody-admin-usuarios');
+      if (!tbody) return;
+
+      const query = (document.getElementById('search-admin-users')?.value || '').toLowerCase().trim();
+      const userEntries = Object.entries(SYSTEM_USERS).filter(([username, u]) => {
+        if (!query) return true;
+        return `${username} ${u.nome} ${u.funcao} ${u.equipe}`.toLowerCase().includes(query);
+      });
+
+      if (userEntries.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-slate-400">Nenhum usuário encontrado.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = userEntries.map(([username, u]) => {
+        const isDefault = Boolean(DEFAULT_SYSTEM_USERS[username]);
+        const isAdminUser = Boolean(u.isAdmin);
+        return `
+          <tr>
+            <td class="px-3 py-2.5">
+              <input
+                id="adm-usr-id-${username}"
+                value="${username}"
+                ${isDefault ? 'readonly title="Usuário padrão do sistema"' : ''}
+                class="w-28 px-2.5 py-1.5 bg-slate-950 border ${isDefault ? 'border-slate-800 text-slate-400 cursor-not-allowed' : 'border-slate-700 text-sky-300'} rounded-lg text-xs font-mono"
+              />
+            </td>
+            <td class="px-3 py-2.5">
+              <input id="adm-usr-nome-${username}" value="${u.nome}" class="w-44 px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white" />
+            </td>
+            <td class="px-3 py-2.5">
+              <select id="adm-usr-funcao-${username}" class="px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white">
+                <option value="Aux. Logístico" ${u.funcao === 'Aux. Logístico' ? 'selected' : ''}>Aux. Logístico</option>
+                <option value="Analista" ${u.funcao === 'Analista' ? 'selected' : ''}>Analista</option>
+                <option value="Líder" ${u.funcao === 'Líder' ? 'selected' : ''}>Líder</option>
+              </select>
+            </td>
+            <td class="px-3 py-2.5">
+              <select id="adm-usr-equipe-${username}" class="px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white">
+                <option value="FM" ${u.equipe === 'FM' ? 'selected' : ''}>FM</option>
+                <option value="LM T1" ${u.equipe === 'LM T1' ? 'selected' : ''}>LM T1</option>
+                <option value="LM T3" ${u.equipe === 'LM T3' ? 'selected' : ''}>LM T3</option>
+              </select>
+            </td>
+            <td class="px-3 py-2.5">
+              <input type="text" id="adm-usr-pass-${username}" value="${u.password}" class="w-32 px-2.5 py-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs font-mono text-amber-300" />
+            </td>
+            <td class="px-3 py-2.5 text-center whitespace-nowrap">
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${isAdminUser ? 'bg-sky-500/15 text-sky-300 border border-sky-500/30' : 'bg-slate-800 text-slate-300'}">
+                ${isAdminUser ? 'Admin' : 'Operador'}
+              </span>
+            </td>
+            <td class="px-3 py-2.5 text-center whitespace-nowrap">
+              <div class="inline-flex items-center gap-1.5">
+                <button type="button" onclick="saveAdminUserRow('${username}')" class="px-2.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition">Salvar</button>
+                ${!isDefault ? `
+                  <button type="button" onclick="deleteAdminUser('${username}')" title="Excluir usuário" class="p-1.5 rounded-lg bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white transition">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                  </button>
+                ` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function saveAdminUserRow(oldUsername) {
+      if (!isCadastroAdminUnlocked || !SYSTEM_USERS[oldUsername]) return;
+
+      const isDefault = Boolean(DEFAULT_SYSTEM_USERS[oldUsername]);
+      const newUsername = isDefault
+        ? oldUsername
+        : (document.getElementById(`adm-usr-id-${oldUsername}`).value || '').trim().toLowerCase();
+      const novoNome = (document.getElementById(`adm-usr-nome-${oldUsername}`).value || '').trim();
+      const novaFuncao = document.getElementById(`adm-usr-funcao-${oldUsername}`).value;
+      const novaEquipe = document.getElementById(`adm-usr-equipe-${oldUsername}`).value;
+      const novaSenha = (document.getElementById(`adm-usr-pass-${oldUsername}`).value || '').trim();
+
+      if (!newUsername || !novoNome || !novaSenha) {
+        showToast('Ops ID, Nome e Senha não podem ficar vazios.', 'error');
+        return;
+      }
+
+      if (newUsername !== oldUsername && SYSTEM_USERS[newUsername]) {
+        showToast(`O usuário "${newUsername}" já existe no sistema.`, 'error');
+        return;
+      }
+
+      const updatedUser = {
+        ...SYSTEM_USERS[oldUsername],
+        nome: novoNome,
+        funcao: novaFuncao,
+        equipe: novaEquipe,
+        password: novaSenha
+      };
+
+      if (newUsername !== oldUsername) {
+        delete SYSTEM_USERS[oldUsername];
+      }
+      SYSTEM_USERS[newUsername] = updatedUser;
+
+      if (currentLoggedUser && currentLoggedUser.username === oldUsername) {
+        const refreshedSession = { username: newUsername, ...updatedUser };
+        sessionStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(refreshedSession));
+        applyLoggedUserUI(refreshedSession);
+      }
+
+      saveRegisteredOperators(getPersistableUsersMap());
+      saveState();
+      renderAdminUsersManager();
+      showToast(`Cadastro de "${novoNome}" atualizado com sucesso.`, 'success');
+    }
+
+    function deleteAdminUser(username) {
+      if (!isCadastroAdminUnlocked || !SYSTEM_USERS[username] || DEFAULT_SYSTEM_USERS[username]) return;
+
+      const nomeRemovido = SYSTEM_USERS[username].nome;
+      delete SYSTEM_USERS[username];
+      saveRegisteredOperators(getPersistableUsersMap());
+      saveState();
+      renderAdminUsersManager();
+      showToast(`Usuário "${nomeRemovido}" (${username}) removido do sistema.`, 'warning');
+    }
+
+    function toggleCadastroFields() {
+      const cat = document.querySelector('input[name="nova-categoria"]:checked')?.value || 'Etiquetas e Ribbon';
+      const isEtq = cat === 'Etiquetas e Ribbon';
+
+      document.getElementById('field-tipo-etiqueta').classList.toggle('hidden', !isEtq);
+      document.getElementById('field-nome-demais').classList.toggle('hidden', isEtq);
+      document.getElementById('campos-especificos-etiquetas').classList.toggle('hidden', !isEtq);
+
+      document.getElementById('label-qtd-caixas').textContent = isEtq ? 'Qtd. Inicial de Caixas *' : 'Qtd. Inicial de Embalagens *';
+      document.getElementById('label-itens-caixa').textContent = isEtq ? 'Itens por Caixa (Itens/CX) *' : 'Qtd. por Embalagem *';
+
+      const lblEtq = document.getElementById('label-cat-etiquetas');
+      const lblDem = document.getElementById('label-cat-demais');
+      const selectedCls = 'flex items-center gap-3 p-3.5 bg-slate-900 border-2 border-orange-500 rounded-xl cursor-pointer';
+      const normalCls = 'flex items-center gap-3 p-3.5 bg-slate-900 border border-slate-700 rounded-xl cursor-pointer';
+
+      if (lblEtq) lblEtq.className = isEtq ? selectedCls : normalCls;
+      if (lblDem) lblDem.className = !isEtq ? selectedCls : normalCls;
+    }
+
+    document.getElementById('form-novo-item')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (!isCadastroAdminUnlocked) {
+        showToast('Acesso negado. Autentique-se como Administrador.', 'error');
+        return;
+      }
+
+      const cat = document.querySelector('input[name="nova-categoria"]:checked')?.value;
+      const codigo = (document.getElementById('novo-codigo').value || '').trim().toUpperCase();
+      const qtdInicial = parseInt(document.getElementById('novo-qtd-caixas').value, 10) || 0;
+      const fator = parseInt(document.getElementById('novo-itens-por-caixa').value, 10) || 1;
+
+      if (!codigo) {
+        showToast('Informe o código do item.', 'error');
+        return;
+      }
+
+      const existe = [...state.etiquetas, ...state.demais].some(i => i.codigo.toUpperCase() === codigo);
+      if (existe) {
+        showToast(`O código "${codigo}" já está cadastrado no banco de dados.`, 'error');
+        return;
+      }
+
+      if (cat === 'Etiquetas e Ribbon') {
+        const tipo = document.getElementById('novo-tipo').value;
+        const descricao = (document.getElementById('novo-descricao').value || '').trim();
+        const dimensoes = (document.getElementById('novo-dimensoes').value || '').trim() || '-';
+        const cor = (document.getElementById('novo-cor').value || '').trim() || '-';
+        const pallets = parseInt(document.getElementById('novo-pallets').value, 10) || 0;
+
+        if (!descricao) {
+          showToast('Informe a descrição completa do item.', 'error');
+          return;
+        }
+
+        state.etiquetas.push({
+          codigo,
+          item: tipo,
+          descricao,
+          dimensoes,
+          cor,
+          qtdCaixas: qtdInicial,
+          itensPorCaixa: fator,
+          qtdPallets: pallets
+        });
+      } else {
+        const nomeInsumo = (document.getElementById('novo-nome-insumo').value || '').trim();
+        if (!nomeInsumo) {
+          showToast('Informe o nome do insumo.', 'error');
+          return;
+        }
+
+        state.demais.push({
+          codigo,
+          item: nomeInsumo,
+          embalagem: qtdInicial,
+          qtdPorEmbalagem: fator
+        });
+      }
+
+      saveState();
+      refreshAll();
+      this.reset();
+      toggleCadastroFields();
+      showToast(`Novo item ${codigo} cadastrado com sucesso!`, 'success');
+    });
+
+    function renderAdminDatabaseEditor() {
+      const tbodyEtq = document.getElementById('tbody-admin-etiquetas');
+      const tbodyDem = document.getElementById('tbody-admin-demais');
+      if (!tbodyEtq || !tbodyDem) return;
+
+      const query = (document.getElementById('search-admin-db')?.value || '').toLowerCase().trim();
+
+      const etqList = state.etiquetas
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) => !query || `${item.codigo} ${item.item} ${item.descricao} ${item.dimensoes}`.toLowerCase().includes(query));
+
+      tbodyEtq.innerHTML = etqList.map(({ item, idx }) => `
+        <tr>
+          <td class="px-2 py-2"><input id="adm-etq-cod-${idx}" value="${item.codigo}" class="w-24 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs font-mono text-orange-300 uppercase" /></td>
+          <td class="px-2 py-2">
+            <select id="adm-etq-tipo-${idx}" class="px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs text-white">
+              <option value="Etiqueta" ${item.item === 'Etiqueta' ? 'selected' : ''}>Etiqueta</option>
+              <option value="Ribbon" ${item.item === 'Ribbon' ? 'selected' : ''}>Ribbon</option>
+            </select>
+          </td>
+          <td class="px-2 py-2"><input id="adm-etq-desc-${idx}" value="${item.descricao}" class="w-48 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs text-white" /></td>
+          <td class="px-2 py-2"><input id="adm-etq-dim-${idx}" value="${item.dimensoes || ''}" class="w-24 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs text-slate-200" /></td>
+          <td class="px-2 py-2"><input id="adm-etq-cor-${idx}" value="${item.cor || ''}" class="w-20 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs text-slate-200" /></td>
+          <td class="px-2 py-2 text-right"><input type="number" min="0" id="adm-etq-cx-${idx}" value="${item.qtdCaixas}" class="w-20 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs text-right font-bold text-white" /></td>
+          <td class="px-2 py-2 text-right"><input type="number" min="1" id="adm-etq-icx-${idx}" value="${item.itensPorCaixa}" class="w-20 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs text-right text-slate-200" /></td>
+          <td class="px-2 py-2 text-right"><input type="number" min="0" id="adm-etq-pal-${idx}" value="${item.qtdPallets}" class="w-16 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs text-right text-slate-200" /></td>
+          <td class="px-2 py-2 text-center whitespace-nowrap">
+            <div class="inline-flex items-center gap-1">
+              <button type="button" onclick="saveAdminEtiquetaRow(${idx})" class="px-2.5 py-1 rounded bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition">Salvar</button>
+              <button type="button" onclick="deleteAdminRow('etiquetas', ${idx})" title="Excluir item" class="p-1.5 rounded bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white transition">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('') || `<tr><td colspan="9" class="px-4 py-6 text-center text-slate-400">Nenhum registro encontrado.</td></tr>`;
+
+      const demList = state.demais
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) => !query || `${item.codigo} ${item.item}`.toLowerCase().includes(query));
+
+      tbodyDem.innerHTML = demList.map(({ item, idx }) => `
+        <tr>
+          <td class="px-2 py-2"><input id="adm-dem-cod-${idx}" value="${item.codigo}" class="w-24 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs font-mono text-orange-300 uppercase" /></td>
+          <td class="px-2 py-2"><input id="adm-dem-item-${idx}" value="${item.item}" class="w-48 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs text-white" /></td>
+          <td class="px-2 py-2 text-right"><input type="number" min="0" id="adm-dem-emb-${idx}" value="${item.embalagem}" class="w-24 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs text-right font-bold text-white" /></td>
+          <td class="px-2 py-2 text-right"><input type="number" min="1" id="adm-dem-qtd-${idx}" value="${item.qtdPorEmbalagem}" class="w-24 px-2 py-1 bg-slate-950 border border-slate-700 rounded text-xs text-right text-slate-200" /></td>
+          <td class="px-2 py-2 text-center whitespace-nowrap">
+            <div class="inline-flex items-center gap-1">
+              <button type="button" onclick="saveAdminDemaisRow(${idx})" class="px-2.5 py-1 rounded bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition">Salvar</button>
+              <button type="button" onclick="deleteAdminRow('demais', ${idx})" title="Excluir item" class="p-1.5 rounded bg-red-600/20 hover:bg-red-600 text-red-300 hover:text-white transition">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('') || `<tr><td colspan="5" class="px-4 py-6 text-center text-slate-400">Nenhum registro encontrado.</td></tr>`;
+
+      lucide.createIcons();
+    }
+
+    function saveAdminEtiquetaRow(idx) {
+      if (!isCadastroAdminUnlocked) return;
+      const target = state.etiquetas[idx];
+      if (!target) return;
+
+      const novoCod = (document.getElementById(`adm-etq-cod-${idx}`).value || '').trim().toUpperCase();
+      const novoTipo = document.getElementById(`adm-etq-tipo-${idx}`).value;
+      const novaDesc = (document.getElementById(`adm-etq-desc-${idx}`).value || '').trim();
+      const novaDim = (document.getElementById(`adm-etq-dim-${idx}`).value || '').trim() || '-';
+      const novaCor = (document.getElementById(`adm-etq-cor-${idx}`).value || '').trim() || '-';
+      const novasCaixas = Math.max(0, parseInt(document.getElementById(`adm-etq-cx-${idx}`).value, 10) || 0);
+      const novosItensCx = Math.max(1, parseInt(document.getElementById(`adm-etq-icx-${idx}`).value, 10) || 1);
+      const novosPallets = Math.max(0, parseInt(document.getElementById(`adm-etq-pal-${idx}`).value, 10) || 0);
+
+      if (!novoCod || !novaDesc) {
+        showToast('Código e descrição não podem ficar vazios.', 'error');
+        return;
+      }
+
+      state.etiquetas[idx] = {
+        codigo: novoCod,
+        item: novoTipo,
+        descricao: novaDesc,
+        dimensoes: novaDim,
+        cor: novaCor,
+        qtdCaixas: novasCaixas,
+        itensPorCaixa: novosItensCx,
+        qtdPallets: novosPallets
+      };
+
+      saveState();
+      refreshAll();
+      showToast(`Registro ${novoCod} atualizado no banco de dados.`, 'success');
+    }
+
+    function saveAdminDemaisRow(idx) {
+      if (!isCadastroAdminUnlocked) return;
+      const target = state.demais[idx];
+      if (!target) return;
+
+      const novoCod = (document.getElementById(`adm-dem-cod-${idx}`).value || '').trim().toUpperCase();
+      const novoItem = (document.getElementById(`adm-dem-item-${idx}`).value || '').trim();
+      const novasEmb = Math.max(0, parseInt(document.getElementById(`adm-dem-emb-${idx}`).value, 10) || 0);
+      const novaQtdEmb = Math.max(1, parseInt(document.getElementById(`adm-dem-qtd-${idx}`).value, 10) || 1);
+
+      if (!novoCod || !novoItem) {
+        showToast('Código e nome do insumo não podem ficar vazios.', 'error');
+        return;
+      }
+
+      state.demais[idx] = {
+        codigo: novoCod,
+        item: novoItem,
+        embalagem: novasEmb,
+        qtdPorEmbalagem: novaQtdEmb
+      };
+
+      saveState();
+      refreshAll();
+      showToast(`Registro ${novoCod} atualizado no banco de dados.`, 'success');
+    }
+
+    function deleteAdminRow(colecao, idx) {
+      if (!isCadastroAdminUnlocked) return;
+      const lista = colecao === 'etiquetas' ? state.etiquetas : state.demais;
+      const removido = lista[idx];
+      if (!removido) return;
+
+      lista.splice(idx, 1);
+      saveState();
+      refreshAll();
+      renderAdminDatabaseEditor();
+      showToast(`Item ${removido.codigo} removido do banco de dados.`, 'warning');
+    }
+
+    // =========================================================================
+    // 10. HISTÓRICO MENSAL (12 MESES + ABAS AUTOMÁTICAS + FILTRO MESES FECHADOS)
+    // =========================================================================
+    function renderHistoricoMonthTabs() {
+      const container = document.getElementById('historico-month-tabs');
+      if (!container) return;
+
+      syncHistoricoMensalRetention();
+      const currentMonth = getCurrentMonthKey();
+
+      let html = `
+        <button
+          type="button"
+          onclick="selectHistoricoMonth('TODOS')"
+          class="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${selectedHistoricoMonth === 'TODOS' ? 'bg-purple-600 text-white shadow-sm' : 'bg-slate-950 text-slate-300 border border-slate-800 hover:border-slate-700'}"
+        >
+          Todos os Meses (${state.mesesHistorico.length})
+        </button>
+      `;
+
+      state.mesesHistorico.forEach(mKey => {
+        const isCurrent = mKey === currentMonth;
+        const isSelected = selectedHistoricoMonth === mKey;
+        const count = state.historico.filter(h => h.mesRef === mKey).length;
+        html += `
+          <button
+            type="button"
+            onclick="selectHistoricoMonth('${mKey}')"
+            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${isSelected ? 'bg-purple-600 text-white shadow-sm' : 'bg-slate-950 text-slate-300 border border-slate-800 hover:border-slate-700'}"
+          >
+            <span>${formatMonthLabel(mKey)}</span>
+            ${isCurrent ? '<span class="px-1.5 py-0.5 text-[10px] rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Atual</span>' : ''}
+            <span class="text-[11px] opacity-75">(${count})</span>
+          </button>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function selectHistoricoMonth(monthKey) {
+      selectedHistoricoMonth = monthKey;
+      if (monthKey !== 'TODOS') {
+        const periodoSelect = document.getElementById('filter-historico-periodo');
+        if (periodoSelect) periodoSelect.value = 'TODOS';
+      }
+      renderHistoricoMonthTabs();
+      renderHistoricoTable();
+    }
+
+    function onHistoricoPeriodoChange() {
+      const periodo = document.getElementById('filter-historico-periodo')?.value || 'TODOS';
+      if (periodo !== 'TODOS') {
+        selectedHistoricoMonth = 'TODOS';
+        renderHistoricoMonthTabs();
+      }
+      renderHistoricoTable();
+    }
+
+    function getClosedMonthsSet(qtdMesesFechados) {
+      const currentMonth = getCurrentMonthKey();
+      const all12 = getLast12MonthKeys().filter(m => m !== currentMonth);
+      return new Set(all12.slice(0, qtdMesesFechados));
+    }
+
+    function renderHistoricoTable() {
+      const tbody = document.getElementById('tbody-historico');
+      const summaryEl = document.getElementById('historico-filter-summary');
+      if (!tbody) return;
+
+      syncHistoricoMensalRetention();
+      const query = (document.getElementById('search-historico')?.value || '').toLowerCase().trim();
+      const periodo = document.getElementById('filter-historico-periodo')?.value || 'TODOS';
+
+      let closedSet = null;
+      if (periodo === '3M_FECHADOS') closedSet = getClosedMonthsSet(3);
+      else if (periodo === '6M_FECHADOS') closedSet = getClosedMonthsSet(6);
+      else if (periodo === '12M_FECHADOS') closedSet = getClosedMonthsSet(12);
+
+      const filtered = state.historico.filter(item => {
+        if (selectedHistoricoMonth !== 'TODOS' && item.mesRef !== selectedHistoricoMonth) return false;
+        if (closedSet && !closedSet.has(item.mesRef)) return false;
+        if (query) {
+          const matchStr = `${item.dataHora} ${item.codigo} ${item.descricao} ${item.operacao} ${item.operadorUsuario || ''} ${item.operadorNome || ''} ${item.operadorFuncao || ''} ${item.responsavel} ${item.categoria}`.toLowerCase();
+          if (!matchStr.includes(query)) return false;
+        }
+        return true;
+      });
+
+      if (summaryEl) {
+        const descPeriodo = periodo === '3M_FECHADOS' ? 'Últimos 3 meses fechados'
+          : periodo === '6M_FECHADOS' ? 'Últimos 6 meses fechados'
+          : periodo === '12M_FECHADOS' ? 'Últimos 12 meses fechados'
+          : (selectedHistoricoMonth !== 'TODOS' ? `Aba mensal: ${formatMonthLabel(selectedHistoricoMonth)}` : 'Todos os registros (até 12 meses)');
+        summaryEl.innerHTML = `
+          <span>Exibindo <strong class="text-white">${filtered.length}</strong> ${filtered.length === 1 ? 'movimentação' : 'movimentações'} • Filtro: <strong class="text-purple-300">${descPeriodo}</strong></span>
+          <span>Mês corrente: <strong class="text-emerald-300">${formatMonthLabel(getCurrentMonthKey())}</strong></span>
+        `;
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="12" class="px-4 py-8 text-center text-slate-400">Nenhuma movimentação encontrada para o período ou filtro selecionado.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(item => `
+        <tr class="hover:bg-slate-800/50 transition">
+          <td class="px-4 py-3 text-slate-300 whitespace-nowrap font-mono text-xs">${item.dataHora}</td>
+          <td class="px-4 py-3 whitespace-nowrap">
+            <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-xs font-semibold">${formatMonthLabel(item.mesRef)}</span>
+          </td>
+          <td class="px-4 py-3 font-mono font-bold text-orange-300 whitespace-nowrap">${item.codigo}</td>
+          <td class="px-4 py-3 font-medium text-white">${item.descricao}</td>
+          <td class="px-4 py-3 text-slate-400 whitespace-nowrap">${item.dimensoes || '-'}</td>
+          <td class="px-4 py-3 text-right font-bold text-white whitespace-nowrap">${formatNumber(item.quantidade)}</td>
+          <td class="px-4 py-3 text-center whitespace-nowrap">
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${item.operacao === 'Inclusão' ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30' : 'bg-red-500/15 text-red-300 border border-red-500/30'}">
+              ${item.operacao}
+            </span>
+          </td>
+          <td class="px-4 py-3 font-mono text-xs font-bold text-sky-300 whitespace-nowrap">${item.operadorUsuario || '-'}</td>
+          <td class="px-4 py-3 font-semibold text-slate-200 whitespace-nowrap">${item.operadorNome || item.responsavel}</td>
+          <td class="px-4 py-3 text-xs text-slate-300 whitespace-nowrap">${item.operadorFuncao || '-'}</td>
+          <td class="px-4 py-3 font-semibold text-orange-300 whitespace-nowrap">${item.responsavel}</td>
+          <td class="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">${item.categoria}</td>
+        </tr>
+      `).join('');
+    }
+
+    // =========================================================================
+    // 11. EXPORTAÇÃO PARA EXCEL (.XLSX COM ABAS NOMEADAS) E INICIALIZAÇÃO GERAL
+    // =========================================================================
+    function exportToCSV() {
+      const dataStr = new Date().toISOString().slice(0, 10);
+
+      // Aba 1: Etiquetas e Ribbon
+      const rowsEtiquetas = state.etiquetas.map(i => ({
+        'Código': i.codigo,
+        'Item': i.item,
+        'Descrição': i.descricao,
+        'Dimensões': i.dimensoes || '-',
+        'Cor': i.cor || '-',
+        'Qtd. de Caixas': Number(i.qtdCaixas || 0),
+        'Itens/CX': Number(i.itensPorCaixa || 0),
+        'Qtd. de Itens': Number(i.qtdCaixas || 0) * Number(i.itensPorCaixa || 0),
+        'Qtd. de Pallets': Number(i.qtdPallets || 0)
+      }));
+
+      // Aba 2: Demais Insumos
+      const rowsDemais = state.demais.map(i => ({
+        'Código': i.codigo,
+        'Item': i.item,
+        'Embalagem': Number(i.embalagem || 0),
+        'Qtd. por Embalagem': Number(i.qtdPorEmbalagem || 0),
+        'Quantidade Total': Number(i.embalagem || 0) * Number(i.qtdPorEmbalagem || 0)
+      }));
+
+      // Aba 3: Patrimonial
+      const rowsPatrimonial = (state.patrimonial || []).map(i => {
+        const serieVal = i.numeroSerie !== undefined ? i.numeroSerie : (i.serieModelo || '-');
+        const modeloVal = i.modelo !== undefined ? i.modelo : '-';
+        return {
+          'Código / Plaqueta': i.codigo,
+          'Tipo': i.tipo || 'Outros',
+          'Item / Equipamento': i.item,
+          'Nº de Série': serieVal || '-',
+          'Modelo': modeloVal || '-',
+          'Setor / Localização': i.setor || '-',
+          'Status': i.status || 'Ativo'
+        };
+      });
+
+      // Aba 4: Histórico
+      const rowsHistorico = state.historico.map(h => ({
+        'Data e Hora': h.dataHora,
+        'Mês Ref.': formatMonthLabel(h.mesRef),
+        'Código': h.codigo,
+        'Descrição': h.descricao,
+        'Dimensões': h.dimensoes || '-',
+        'Quantidade': Number(h.quantidade || 0),
+        'Operação': h.operacao,
+        'Usuário': h.operadorUsuario || '-',
+        'Nome': h.operadorNome || h.responsavel,
+        'Função': h.operadorFuncao || '-',
+        'Equipe': h.responsavel,
+        'Categoria': h.categoria
+      }));
+
+      if (typeof XLSX !== 'undefined') {
+        const wb = XLSX.utils.book_new();
+
+        const wsEtiquetas = XLSX.utils.json_to_sheet(
+          rowsEtiquetas.length ? rowsEtiquetas : [{ 'Aviso': 'Nenhum registro em Etiquetas e Ribbon' }]
+        );
+        XLSX.utils.book_append_sheet(wb, wsEtiquetas, 'Etiquetas e Ribbon');
+
+        const wsDemais = XLSX.utils.json_to_sheet(
+          rowsDemais.length ? rowsDemais : [{ 'Aviso': 'Nenhum registro em Demais Insumos' }]
+        );
+        XLSX.utils.book_append_sheet(wb, wsDemais, 'Demais Insumos');
+
+        if (canAccessPatrimonial()) {
+          const wsPatrimonial = XLSX.utils.json_to_sheet(
+            rowsPatrimonial.length ? rowsPatrimonial : [{ 'Aviso': 'Nenhum registro em Patrimonial' }]
+          );
+          XLSX.utils.book_append_sheet(wb, wsPatrimonial, 'Patrimonial');
+        }
+
+        const wsHistorico = XLSX.utils.json_to_sheet(
+          rowsHistorico.length ? rowsHistorico : [{ 'Aviso': 'Nenhuma movimentação registrada' }]
+        );
+        XLSX.utils.book_append_sheet(wb, wsHistorico, 'Histórico');
+
+        XLSX.writeFile(wb, `Inventario_HUB_LMG_44_${dataStr}.xlsx`);
+        showToast('Planilha Excel (.xlsx) exportada com abas separadas!', 'success');
+        return;
+      }
+
+      // Fallback CSV caso SheetJS não carregue
+      let csv = '\uFEFF';
+      csv += '=== ETIQUETAS E RIBBON - HUB LMG 44 ===\n';
+      csv += 'Código;Item;Descrição;Dimensões;Cor;Qtd. de Caixas;Itens/CX;Qtd. de Itens;Qtd. de Pallets\n';
+      state.etiquetas.forEach(i => {
+        const total = Number(i.qtdCaixas) * Number(i.itensPorCaixa);
+        csv += `${i.codigo};${i.item};${i.descricao};${i.dimensoes || '-'};${i.cor || '-'};${i.qtdCaixas};${i.itensPorCaixa};${total};${i.qtdPallets}\n`;
+      });
+
+      csv += '\n=== DEMAIS INSUMOS - HUB LMG 44 ===\n';
+      csv += 'Código;Item;Embalagem;Qtd. por embalagem;Quantidade Total\n';
+      state.demais.forEach(i => {
+        const total = Number(i.embalagem) * Number(i.qtdPorEmbalagem);
+        csv += `${i.codigo};${i.item};${i.embalagem};${i.qtdPorEmbalagem};${total}\n`;
+      });
+
+      if (canAccessPatrimonial()) {
+        csv += '\n=== PATRIMONIAL - HUB LMG 44 ===\n';
+        csv += 'Código / Plaqueta;Tipo;Item / Equipamento;Nº de Série;Modelo;Setor / Localização;Status\n';
+        (state.patrimonial || []).forEach(i => {
+          const serieVal = i.numeroSerie !== undefined ? i.numeroSerie : (i.serieModelo || '-');
+          const modeloVal = i.modelo !== undefined ? i.modelo : '-';
+          csv += `${i.codigo};${i.tipo || 'Outros'};${i.item};${serieVal};${modeloVal};${i.setor || '-'};${i.status || 'Ativo'}\n`;
+        });
+      }
+
+      csv += '\n=== HISTÓRICO DE MOVIMENTAÇÕES (ÚLTIMOS 12 MESES) ===\n';
+      csv += 'Data e Hora;Mês Ref.;Código;Descrição;Dimensões;Quantidade;Operação;Usuário;Nome;Função;Equipe;Categoria\n';
+      state.historico.forEach(h => {
+        csv += `${h.dataHora};${formatMonthLabel(h.mesRef)};${h.codigo};${h.descricao};${h.dimensoes || '-'};${h.quantidade};${h.operacao};${h.operadorUsuario || '-'};${h.operadorNome || h.responsavel};${h.operadorFuncao || '-'};${h.responsavel};${h.categoria}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Inventario_HUB_LMG_44_${dataStr}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Planilha CSV exportada com sucesso!', 'success');
+    }
+
+    function updateSidebarBadges() {
+      const bEtq = document.getElementById('badge-count-etiquetas');
+      const bDem = document.getElementById('badge-count-demais');
+      const bPat = document.getElementById('badge-count-patrimonial');
+      const bHis = document.getElementById('badge-count-historico');
+      if (bEtq) bEtq.textContent = state.etiquetas.length;
+      if (bDem) bDem.textContent = state.demais.length;
+      if (bPat) bPat.textContent = (state.patrimonial || []).length;
+      if (bHis) bHis.textContent = state.historico.length;
+    }
+
+    function refreshAll() {
+      updatePatrimonialAccessVisibility();
+      updateSidebarBadges();
+      renderPatrimonioTipoSelect();
+      populateEtiquetasDimensoesFilter();
+      populateMovimentacaoSelect();
+      renderDashboard();
+      renderEtiquetasTable();
+      renderDemaisTable();
+      renderPatrimonialTable();
+      renderPatrimonialEditTable();
+      renderHistoricoMonthTabs();
+      renderHistoricoTable();
+      if (isCadastroAdminUnlocked && activeView === 'admin') {
+        if (activeAdminSubTab === 'editar') renderAdminDatabaseEditor();
+        else if (activeAdminSubTab === 'usuarios') renderAdminUsersManager();
+      }
+      lucide.createIcons();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadTiposPatrimonio();
+      loadRegisteredOperators();
+      loadState();
+      restoreLoginSession();
+      refreshAll();
+      navigateTo('dashboard');
+      syncSidebarViewportHeight();
+    });
+  </script>
+</body>
+</html>
