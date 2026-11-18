@@ -1299,23 +1299,16 @@
     </div>
   </footer>
 
-  <!-- Integração em Nuvem Multiusuário (Long-Polling HTTPS + Presença + Transação Atômica) -->
+  <!-- Sincronização Multiusuário via HTTPS REST Puro (Zero queda entre múltiplos PCs na mesma rede) -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import {
-      initializeFirestore,
-      memoryLocalCache,
-      doc,
-      setDoc,
-      getDocFromServer,
-      runTransaction,
-      onSnapshot,
-      collection,
-      deleteDoc
-    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+    const FIREBASE_PROJECT_ID = "inventario-hub-lmg44";
+    const FIREBASE_API_KEY = "AIzaSyAlhwPvzJlNlcPH9u1n3tqRhTZZgoekGb4";
+    const APP_ID = typeof __app_id !== 'undefined' ? __app_id : 'hub-lmg-44-default';
     const CLIENT_SESSION_ID = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+    const DOC_PATH = `artifacts/${APP_ID}/public/data/inventario_hub_lmg_44/estado_atual_limpo`;
+    const PRESENCE_COL_PATH = `artifacts/${APP_ID}/public/data/inventario_hub_lmg_44/estado_atual_limpo/sessoes_ativas`;
+    const FIRESTORE_BASE_URL = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents`;
 
     window.__cloudSync = {
       enabled: false,
@@ -1323,6 +1316,57 @@
       lastAppliedRevision: 0,
       onlineUsersCount: 1
     };
+
+    // Conversores JSON <-> Firestore REST Value
+    function toFirestoreValue(val) {
+      if (val === null || val === undefined) return { nullValue: null };
+      if (typeof val === 'boolean') return { booleanValue: val };
+      if (typeof val === 'number') {
+        return Number.isInteger(val) ? { integerValue: String(val) } : { doubleValue: val };
+      }
+      if (typeof val === 'string') return { stringValue: val };
+      if (Array.isArray(val)) {
+        return { arrayValue: { values: val.map(toFirestoreValue) } };
+      }
+      if (typeof val === 'object') {
+        const fields = {};
+        for (const [k, v] of Object.entries(val)) {
+          if (v !== undefined) fields[k] = toFirestoreValue(v);
+        }
+        return { mapValue: { fields } };
+      }
+      return { stringValue: String(val) };
+    }
+
+    function fromFirestoreValue(v) {
+      if (!v || typeof v !== 'object') return null;
+      if ('nullValue' in v) return null;
+      if ('booleanValue' in v) return Boolean(v.booleanValue);
+      if ('integerValue' in v) return Number(v.integerValue);
+      if ('doubleValue' in v) return Number(v.doubleValue);
+      if ('stringValue' in v) return v.stringValue;
+      if ('arrayValue' in v) {
+        return (v.arrayValue.values || []).map(fromFirestoreValue);
+      }
+      if ('mapValue' in v) {
+        const obj = {};
+        const fields = v.mapValue.fields || {};
+        for (const [k, fv] of Object.entries(fields)) {
+          obj[k] = fromFirestoreValue(fv);
+        }
+        return obj;
+      }
+      return null;
+    }
+
+    function fromFirestoreDocument(docJson) {
+      if (!docJson || !docJson.fields) return null;
+      const out = {};
+      for (const [k, fv] of Object.entries(docJson.fields)) {
+        out[k] = fromFirestoreValue(fv);
+      }
+      return out;
+    }
 
     function mergeHistoricos12Meses(localHist = [], remoteHist = []) {
       const map = new Map();
@@ -1363,270 +1407,265 @@
 
       const renderOnlineBadge = () => {
         const count = Math.max(1, window.__cloudSync.onlineUsersCount || 1);
-        const suffix = count === 1 ? '1 online' : `${count} online`;
+        const suffix = count === 1 ? '1 estação online' : `${count} estações online`;
         setCloudStatus(`Online (${suffix})`, true);
       };
 
-      try {
-        const embeddedFirebaseConfig = {
-          apiKey: "AIzaSyAlhwPvzJlNlcPH9u1n3tqRhTZZgoekGb4",
-          authDomain: "inventario-hub-lmg44.firebaseapp.com",
-          projectId: "inventario-hub-lmg44",
-          storageBucket: "inventario-hub-lmg44.firebasestorage.app",
-          messagingSenderId: "481483413009",
-          appId: "1:481483413009:web:860ef0dd919d998f6203b0"
-        };
-
-        const firebaseConfig = (typeof __firebase_config !== 'undefined' && __firebase_config)
-          ? JSON.parse(__firebase_config)
-          : embeddedFirebaseConfig;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'hub-lmg-44-default';
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-
-        // Força Long-Polling HTTPS (ignora bloqueio de WebSocket/gRPC de firewalls corporativos)
-        // e usa memoryLocalCache para evitar trava de lock IndexedDB entre múltiplas abas/PCs
-        const db = initializeFirestore(app, {
-          experimentalForceLongPolling: true,
-          useFetchStreams: false,
-          localCache: memoryLocalCache()
+      // Autenticação anônima via REST (sem SDK WebSocket)
+      let idToken = null;
+      async function ensureAuthToken() {
+        if (idToken) return idToken;
+        const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ returnSecureToken: true })
         });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData?.error?.message || `HTTP_${res.status}`);
+        }
+        const data = await res.json();
+        idToken = data.idToken;
+        return idToken;
+      }
 
+      async function fetchServerDoc() {
+        const token = await ensureAuthToken();
+        const res = await fetch(`${FIRESTORE_BASE_URL}/${DOC_PATH}`, {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` },
+          cache: 'no-store'
+        });
+        if (res.status === 404) return { exists: false, data: null, updateTime: null };
+        if (!res.ok) throw new Error(`GET_${res.status}`);
+        const json = await res.json();
+        return {
+          exists: true,
+          data: fromFirestoreDocument(json),
+          updateTime: json.updateTime || null
+        };
+      }
+
+      async function writeServerDoc(payload, expectedUpdateTime = null) {
+        const token = await ensureAuthToken();
+        const url = new URL(`${FIRESTORE_BASE_URL}/${DOC_PATH}`);
+        if (expectedUpdateTime) {
+          url.searchParams.set('currentDocument.updateTime', expectedUpdateTime);
+        }
+        const body = { fields: toFirestoreValue(payload).mapValue.fields };
+        const res = await fetch(url.toString(), {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(body)
+        });
+        if (res.status === 400 || res.status === 409 || res.status === 412) {
+          return { conflict: true };
+        }
+        if (!res.ok) throw new Error(`PATCH_${res.status}`);
+        const json = await res.json();
+        return { conflict: false, updateTime: json.updateTime };
+      }
+
+      let isApplyingRemote = false;
+
+      const applyRemoteSnapshot = (cloudData) => {
+        if (!cloudData || !Array.isArray(cloudData.etiquetas) || !Array.isArray(cloudData.demais)) return;
+        const rev = Number(cloudData.revision || 0);
+        if (rev > 0 && rev <= window.__cloudSync.lastAppliedRevision) return;
+        if (rev > 0) window.__cloudSync.lastAppliedRevision = rev;
+
+        isApplyingRemote = true;
         try {
-          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            await signInWithCustomToken(auth, __initial_auth_token);
-          } else {
-            await signInAnonymously(auth);
-          }
-        } catch (authErr) {
-          console.error('Erro de autenticação Firebase:', authErr);
-          setCloudStatus(`Erro Auth (${authErr.code || 'Domínio'})`, false);
-          if (typeof showToast === 'function') {
-            showToast('Falha na autenticação com a nuvem. Adicione o domínio no Firebase Console > Authentication > Authorized domains.', 'error');
-          }
-          return;
-        }
-
-        if (!auth.currentUser) {
-          setCloudStatus('Modo Local (Sem Auth)', false);
-          return;
-        }
-
-        const sharedDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventario_hub_lmg_44', 'estado_atual_limpo');
-        const presenceColRef = collection(db, 'artifacts', appId, 'public', 'data', 'inventario_hub_lmg_44', 'estado_atual_limpo', 'sessoes_ativas');
-        const myPresenceDocRef = doc(presenceColRef, CLIENT_SESSION_ID);
-
-        let isApplyingRemote = false;
-
-        const applyRemoteSnapshot = (cloudData) => {
-          if (!cloudData || !Array.isArray(cloudData.etiquetas) || !Array.isArray(cloudData.demais)) return;
-          const rev = Number(cloudData.revision || 0);
-          if (rev > 0 && rev < window.__cloudSync.lastAppliedRevision) {
-            return;
-          }
-          if (rev > 0) {
-            window.__cloudSync.lastAppliedRevision = rev;
-          }
-
-          isApplyingRemote = true;
-          try {
-            if (typeof window.applyExternalState === 'function') {
-              const localHist = (typeof window.getCurrentInventoryState === 'function')
-                ? (window.getCurrentInventoryState().historico || [])
-                : [];
-              window.applyExternalState({
-                ...cloudData,
-                historico: mergeHistoricos12Meses(localHist, cloudData.historico || [])
-              });
-            }
-          } finally {
-            isApplyingRemote = false;
-          }
-        };
-
-        // Heartbeat de presença para manter múltiplos computadores online simultaneamente
-        const sendHeartbeat = async () => {
-          if (!navigator.onLine || !auth.currentUser) return;
-          try {
-            const u = window.getLoggedUserInfo ? window.getLoggedUserInfo() : null;
-            await setDoc(myPresenceDocRef, {
-              sessionId: CLIENT_SESSION_ID,
-              user: u ? u.username : 'visitante',
-              nome: u ? u.nome : 'Estação HUB',
-              lastSeenMs: Date.now()
+          if (typeof window.applyExternalState === 'function') {
+            const localHist = (typeof window.getCurrentInventoryState === 'function')
+              ? (window.getCurrentInventoryState().historico || [])
+              : [];
+            window.applyExternalState({
+              ...cloudData,
+              historico: mergeHistoricos12Meses(localHist, cloudData.historico || [])
             });
-          } catch (e) {
-            console.warn('Heartbeat falhou:', e);
           }
-        };
+        } finally {
+          isApplyingRemote = false;
+        }
+      };
 
-        window.__cloudSync.enabled = true;
+      // Heartbeat individual por máquina (nunca colide entre PCs)
+      async function pingPresence() {
+        if (!navigator.onLine) return;
+        try {
+          const token = await ensureAuthToken();
+          const u = window.getLoggedUserInfo ? window.getLoggedUserInfo() : null;
+          const presencePayload = {
+            sessionId: CLIENT_SESSION_ID,
+            user: u ? u.username : 'login',
+            nome: u ? u.nome : 'Estação HUB',
+            lastSeenMs: Date.now()
+          };
+          await fetch(`${FIRESTORE_BASE_URL}/${PRESENCE_COL_PATH}/${CLIENT_SESSION_ID}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ fields: toFirestoreValue(presencePayload).mapValue.fields })
+          });
 
-        // Gravação atômica via Transaction
-        window.__cloudSync.saveToCloud = async (currentState, deltaMov = null) => {
-          if (!auth.currentUser || isApplyingRemote) return;
-          setCloudStatus('Sincronizando...', false);
+          // Conta estações ativas nos últimos 45s
+          const listRes = await fetch(`${FIRESTORE_BASE_URL}/${PRESENCE_COL_PATH}?pageSize=50`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+            cache: 'no-store'
+          });
+          if (listRes.ok) {
+            const listJson = await listRes.json();
+            const now = Date.now();
+            const docs = listJson.documents || [];
+            const active = docs.filter(d => {
+              const parsed = fromFirestoreDocument(d);
+              return parsed && (now - Number(parsed.lastSeenMs || 0)) <= 45000;
+            }).length;
+            window.__cloudSync.onlineUsersCount = Math.max(1, active);
+          }
+        } catch (e) {
+          // Não derruba o status principal se apenas a presença falhar
+        }
+      }
 
+      window.__cloudSync.enabled = true;
+
+      // Salva com controle de concorrência otimista (até 4 tentativas se 2 PCs clicarem no mesmo segundo)
+      window.__cloudSync.saveToCloud = async (currentState, deltaMov = null) => {
+        if (isApplyingRemote) return;
+        setCloudStatus('Sincronizando...', false);
+
+        for (let attempt = 0; attempt < 4; attempt++) {
           try {
-            const newRevision = await runTransaction(db, async (transaction) => {
-              const sfDoc = await transaction.get(sharedDocRef);
-              const serverData = sfDoc.exists() ? sfDoc.data() : {};
-              const serverRev = Number(serverData.revision || 0);
-              const nextRev = Math.max(serverRev, window.__cloudSync.lastAppliedRevision) + 1;
+            const remote = await fetchServerDoc();
+            const serverData = remote.data || {};
+            const serverRev = Number(serverData.revision || 0);
+            const nextRev = Math.max(serverRev, window.__cloudSync.lastAppliedRevision) + 1;
 
-              const mergedHistorico = mergeHistoricos12Meses(
-                currentState.historico || [],
-                serverData.historico || []
-              );
+            const mergedHistorico = mergeHistoricos12Meses(
+              currentState.historico || [],
+              serverData.historico || []
+            );
 
-              let nextEtiquetas = currentState.etiquetas || [];
-              let nextDemais = currentState.demais || [];
+            let nextEtiquetas = currentState.etiquetas || [];
+            let nextDemais = currentState.demais || [];
 
-              if (deltaMov && sfDoc.exists() && Array.isArray(serverData.etiquetas) && Array.isArray(serverData.demais)) {
-                nextEtiquetas = JSON.parse(JSON.stringify(serverData.etiquetas));
-                nextDemais = JSON.parse(JSON.stringify(serverData.demais));
+            if (deltaMov && remote.exists && Array.isArray(serverData.etiquetas) && Array.isArray(serverData.demais)) {
+              nextEtiquetas = JSON.parse(JSON.stringify(serverData.etiquetas));
+              nextDemais = JSON.parse(JSON.stringify(serverData.demais));
 
-                const etqTarget = nextEtiquetas.find(i => i.codigo === deltaMov.codigo);
-                const demTarget = nextDemais.find(i => i.codigo === deltaMov.codigo);
+              const etqTarget = nextEtiquetas.find(i => i.codigo === deltaMov.codigo);
+              const demTarget = nextDemais.find(i => i.codigo === deltaMov.codigo);
 
-                if (etqTarget) {
-                  const atual = Number(etqTarget.qtdCaixas || 0);
-                  if (deltaMov.operacao === 'Retirada' && atual < deltaMov.quantidade) {
-                    throw new Error(`SALDO_INSUFICIENTE:${atual}`);
+              if (etqTarget) {
+                const atual = Number(etqTarget.qtdCaixas || 0);
+                if (deltaMov.operacao === 'Retirada' && atual < deltaMov.quantidade) {
+                  if (typeof showToast === 'function') {
+                    showToast(`Outro PC acabou de retirar este item! Saldo atual: ${atual}.`, 'error');
                   }
-                  etqTarget.qtdCaixas = deltaMov.operacao === 'Inclusão'
-                    ? atual + deltaMov.quantidade
-                    : atual - deltaMov.quantidade;
-                } else if (demTarget) {
-                  const atual = Number(demTarget.embalagem || 0);
-                  if (deltaMov.operacao === 'Retirada' && atual < deltaMov.quantidade) {
-                    throw new Error(`SALDO_INSUFICIENTE:${atual}`);
-                  }
-                  demTarget.embalagem = deltaMov.operacao === 'Inclusão'
-                    ? atual + deltaMov.quantidade
-                    : atual - deltaMov.quantidade;
+                  applyRemoteSnapshot(serverData);
+                  renderOnlineBadge();
+                  return;
                 }
+                etqTarget.qtdCaixas = deltaMov.operacao === 'Inclusão'
+                  ? atual + deltaMov.quantidade
+                  : atual - deltaMov.quantidade;
+              } else if (demTarget) {
+                const atual = Number(demTarget.embalagem || 0);
+                if (deltaMov.operacao === 'Retirada' && atual < deltaMov.quantidade) {
+                  if (typeof showToast === 'function') {
+                    showToast(`Outro PC acabou de retirar este item! Saldo atual: ${atual}.`, 'error');
+                  }
+                  applyRemoteSnapshot(serverData);
+                  renderOnlineBadge();
+                  return;
+                }
+                demTarget.embalagem = deltaMov.operacao === 'Inclusão'
+                  ? atual + deltaMov.quantidade
+                  : atual - deltaMov.quantidade;
               }
+            }
 
-              const payload = {
-                etiquetas: nextEtiquetas,
-                demais: nextDemais,
-                patrimonial: currentState.patrimonial || serverData.patrimonial || [],
-                tiposPatrimonio: Array.from(new Set([...(serverData.tiposPatrimonio || []), ...(currentState.tiposPatrimonio || [])])),
-                historico: mergedHistorico,
-                mesesHistorico: Array.from(new Set([...(serverData.mesesHistorico || []), ...(currentState.mesesHistorico || [])])).sort((a, b) => b.localeCompare(a)),
-                operadoresCadastrados: { ...(serverData.operadoresCadastrados || {}), ...(currentState.operadoresCadastrados || {}) },
-                revision: nextRev,
-                updatedAt: new Date().toISOString()
-              };
+            const payload = {
+              etiquetas: nextEtiquetas,
+              demais: nextDemais,
+              patrimonial: currentState.patrimonial || serverData.patrimonial || [],
+              tiposPatrimonio: Array.from(new Set([...(serverData.tiposPatrimonio || []), ...(currentState.tiposPatrimonio || [])])),
+              historico: mergedHistorico,
+              mesesHistorico: Array.from(new Set([...(serverData.mesesHistorico || []), ...(currentState.mesesHistorico || [])])).sort((a, b) => b.localeCompare(a)),
+              operadoresCadastrados: { ...(serverData.operadoresCadastrados || {}), ...(currentState.operadoresCadastrados || {}) },
+              revision: nextRev,
+              updatedAt: new Date().toISOString()
+            };
 
-              transaction.set(sharedDocRef, payload);
-              return { nextRev, payload };
-            });
+            const writeRes = await writeServerDoc(payload, remote.exists ? remote.updateTime : null);
+            if (writeRes.conflict) {
+              await new Promise(r => setTimeout(r, 150 + Math.random() * 200));
+              continue;
+            }
 
-            window.__cloudSync.lastAppliedRevision = newRevision.nextRev;
+            window.__cloudSync.lastAppliedRevision = nextRev;
             isApplyingRemote = true;
             try {
               if (typeof window.applyExternalState === 'function') {
-                window.applyExternalState(newRevision.payload);
+                window.applyExternalState(payload);
               }
             } finally {
               isApplyingRemote = false;
             }
             renderOnlineBadge();
+            return;
           } catch (err) {
-            console.error('Erro na transação com a nuvem:', err);
-            if (String(err.message || '').startsWith('SALDO_INSUFICIENTE:')) {
-              const saldoReal = err.message.split(':')[1];
-              if (typeof showToast === 'function') {
-                showToast(`Outro computador acabou de movimentar este item! Saldo atual: ${saldoReal}.`, 'error');
-              }
-              const fresh = await getDocFromServer(sharedDocRef);
-              if (fresh.exists()) applyRemoteSnapshot(fresh.data());
-              renderOnlineBadge();
-            } else {
-              setCloudStatus(`Falha Rede (${err.code || 'Erro'})`, false);
+            console.error('Erro ao salvar na nuvem:', err);
+            if (attempt === 3) {
+              setCloudStatus(`Falha Rede (${err.message || 'Erro'})`, false);
             }
           }
-        };
+        }
+      };
 
-        // 1. Inicia os listeners em tempo real imediatamente (não bloqueia em getDocFromServer)
-        onSnapshot(
-          sharedDocRef,
-          (snapshot) => {
-            renderOnlineBadge();
-            if (snapshot.exists()) {
-              applyRemoteSnapshot(snapshot.data());
-            } else if (typeof window.getCurrentInventoryState === 'function') {
-              window.__cloudSync.saveToCloud(window.getCurrentInventoryState());
-            }
-          },
-          (error) => {
-            console.error('Erro no listener de inventário:', error);
-            setCloudStatus(`Offline (${error.code || 'Permissão'})`, false);
-          }
-        );
-
-        // 2. Listener de presença multiusuário (conta quantos PCs estão com heartbeat recente <= 60s)
-        onSnapshot(
-          presenceColRef,
-          (querySnap) => {
-            const now = Date.now();
-            let activeCount = 0;
-            querySnap.forEach((docItem) => {
-              const d = docItem.data();
-              if (d && (now - Number(d.lastSeenMs || 0)) <= 65000) {
-                activeCount++;
-              }
-            });
-            window.__cloudSync.onlineUsersCount = Math.max(1, activeCount);
-            renderOnlineBadge();
-          },
-          () => {}
-        );
-
-        // 3. Busca inicial direta do servidor + Heartbeat + Polling HTTPS de redundância a cada 6s
-        sendHeartbeat();
-        setInterval(sendHeartbeat, 20000);
-
-        setInterval(async () => {
-          if (!navigator.onLine || isApplyingRemote) return;
-          try {
-            const snap = await getDocFromServer(sharedDocRef);
-            if (snap.exists()) {
-              const data = snap.data();
-              const rev = Number(data.revision || 0);
-              if (rev > window.__cloudSync.lastAppliedRevision) {
-                applyRemoteSnapshot(data);
-              }
-              renderOnlineBadge();
-            }
-          } catch (pollErr) {
-            // Silencioso; o onSnapshot principal continua ativo
-          }
-        }, 6000);
-
-        window.addEventListener('beforeunload', () => {
-          deleteDoc(myPresenceDocRef).catch(() => {});
-        });
-
-        window.addEventListener('online', () => {
-          setCloudStatus('Reconectando...', false);
-          sendHeartbeat();
-          getDocFromServer(sharedDocRef).then(s => {
-            if (s.exists()) applyRemoteSnapshot(s.data());
-            renderOnlineBadge();
-          }).catch(() => {});
-        });
-
-        window.addEventListener('offline', () => {
+      // Ciclo de leitura HTTPS limpo (a cada 3.5s) — sem túnel persistente que o firewall derruba
+      async function syncLoopTick() {
+        if (!navigator.onLine) {
           setCloudStatus('Sem Internet (Offline)', false);
-        });
+          return;
+        }
+        if (isApplyingRemote) return;
 
-      } catch (err) {
-        console.error('Falha crítica ao iniciar nuvem:', err);
-        setCloudStatus('Erro Inicialização Nuvem', false);
+        try {
+          const remote = await fetchServerDoc();
+          if (remote.exists && remote.data) {
+            applyRemoteSnapshot(remote.data);
+          } else if (typeof window.getCurrentInventoryState === 'function') {
+            await window.__cloudSync.saveToCloud(window.getCurrentInventoryState());
+          }
+          renderOnlineBadge();
+        } catch (err) {
+          console.warn('Tentando reconectar HTTPS:', err.message);
+          idToken = null; // Renova token se expirou
+          setCloudStatus(`Reconectando (${err.message || 'Rede'})...`, false);
+        }
       }
+
+      await syncLoopTick();
+      await pingPresence();
+
+      setInterval(syncLoopTick, 3500);
+      setInterval(pingPresence, 15000);
+
+      window.addEventListener('online', () => {
+        syncLoopTick();
+        pingPresence();
+      });
+      window.addEventListener('offline', () => {
+        setCloudStatus('Sem Internet (Offline)', false);
+      });
     }
 
     if (document.readyState === 'loading') {
