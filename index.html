@@ -1418,6 +1418,9 @@
         // Cada movimentação é um documento próprio, separado do saldo principal.
         const movementColRef = collection(sharedDocRef, 'historico_movimentacoes');
         const remoteMovements = new Map();
+        // Mantém o último estado principal recebido para reaplicar o histórico
+        // sempre que a subcoleção emitir uma atualização.
+        let latestCloudData = null;
 
         let isApplyingRemote = false;
 
@@ -1430,6 +1433,7 @@
           if (rev > 0) {
             window.__cloudSync.lastAppliedRevision = rev;
           }
+          latestCloudData = cloudData;
 
           isApplyingRemote = true;
           try {
@@ -1548,15 +1552,16 @@
             });
 
             window.__cloudSync.lastAppliedRevision = newRevision.nextRev;
-            if (deltaMov && deltaMov.historico && deltaMov.idMov) remoteMovements.set(String(deltaMov.idMov), deltaMov.historico);
-            isApplyingRemote = true;
-            try {
-              if (typeof window.applyExternalState === 'function') {
-                window.applyExternalState(newRevision.payload);
-              }
-            } finally {
-              isApplyingRemote = false;
+            if (deltaMov && deltaMov.historico && deltaMov.idMov) {
+              remoteMovements.set(String(deltaMov.idMov), {
+                ...deltaMov.historico,
+                idMov: String(deltaMov.idMov)
+              });
             }
+            // Não aplicar somente o documento principal: ele contém apenas o
+            // histórico legado. Reaplica o estado unindo legado + subcoleção +
+            // histórico local, para não apagar a movimentação recém-registrada.
+            applyRemoteSnapshot(newRevision.payload);
             renderOnlineBadge();
           } catch (err) {
             console.error('Erro na transação com a nuvem:', err);
@@ -1600,14 +1605,33 @@
 
         // 2. Histórico de movimentações em tempo real, independente do documento principal.
         onSnapshot(movementColRef, (querySnap) => {
-          querySnap.docChanges().forEach((change) => {
-            if (change.type === 'removed') remoteMovements.delete(change.doc.id);
-            else remoteMovements.set(change.doc.id, { ...change.doc.data(), idMov: change.doc.id });
+          // querySnap.docs representa a coleção completa neste instante.
+          // Reconstruir o Map evita depender da ordem dos docChanges.
+          remoteMovements.clear();
+          querySnap.docs.forEach((movementDoc) => {
+            remoteMovements.set(movementDoc.id, {
+              ...movementDoc.data(),
+              idMov: movementDoc.id
+            });
           });
-          getDocFromServer(sharedDocRef).then((snap) => {
-            if (snap.exists()) applyRemoteSnapshot(snap.data());
-          }).catch((e) => console.warn('Falha ao atualizar histórico:', e));
-        }, (error) => console.error('Erro no listener do histórico:', error));
+
+          // Reaplica o histórico assim que a subcoleção atualizar, sem uma
+          // leitura adicional do documento principal.
+          if (latestCloudData) {
+            applyRemoteSnapshot(latestCloudData);
+          }
+          console.info(
+            '[HUB LMG 44] Histórico remoto carregado:',
+            remoteMovements.size,
+            'movimentação(ões).'
+          );
+        }, (error) => {
+          console.error('Erro no listener do histórico:', error);
+          setCloudStatus(`Falha no histórico (${error.code || 'Erro'})`, false);
+          if (typeof showToast === 'function') {
+            showToast('Não foi possível receber o histórico da nuvem. Verifique a conexão e as permissões do Firestore.', 'error');
+          }
+        });
 
         // 3. Listener de presença multiusuário (conta quantos PCs estão com heartbeat recente <= 60s)
         onSnapshot(
