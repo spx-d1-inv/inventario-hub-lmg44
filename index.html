@@ -1369,7 +1369,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     window.__cloudSync = {
       enabled: false,
@@ -1398,57 +1398,71 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Regra 3: Autenticar antes de qualquer operação no banco
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
           await signInWithCustomToken(auth, __initial_auth_token);
         } else {
           await signInAnonymously(auth);
         }
 
-        const user = auth.currentUser;
-        if (!user) return;
+        if (!auth.currentUser) return;
 
-        // Regra 1: Caminho público compartilhado para todos os operadores do HUB
         const sharedDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventario_hub_lmg_44', 'estado_atual_limpo');
+        let isApplyingRemote = false;
 
         window.__cloudSync.enabled = true;
         window.__cloudSync.saveToCloud = async (currentState) => {
-          if (!auth.currentUser) return;
+          if (!auth.currentUser || isApplyingRemote) return;
           try {
             await setDoc(sharedDocRef, {
-              etiquetas: currentState.etiquetas,
-              demais: currentState.demais,
+              etiquetas: currentState.etiquetas || [],
+              demais: currentState.demais || [],
               patrimonial: currentState.patrimonial || [],
-              tiposPatrimonio: currentState.tiposPatrimonio || TIPOS_PATRIMONIO,
-              historico: currentState.historico,
-              mesesHistorico: currentState.mesesHistorico,
+              tiposPatrimonio: currentState.tiposPatrimonio || [],
+              historico: currentState.historico || [],
+              mesesHistorico: currentState.mesesHistorico || [],
               operadoresCadastrados: currentState.operadoresCadastrados || {},
               updatedAt: new Date().toISOString()
             });
           } catch (err) {
             console.error('Erro ao salvar estado compartilhado:', err);
+            if (typeof showToast === 'function') {
+              showToast('Erro ao sincronizar com a nuvem: verifique as regras do Firestore.', 'error');
+            }
           }
         };
 
-        let isFirstSnapshot = true;
+        // 1. Carrega primeiro o estado existente na nuvem antes de iniciar o listener
+        const initialSnap = await getDoc(sharedDocRef);
+        if (initialSnap.exists()) {
+          const cloudData = initialSnap.data();
+          if (cloudData && Array.isArray(cloudData.etiquetas) && Array.isArray(cloudData.demais)) {
+            isApplyingRemote = true;
+            if (typeof window.applyExternalState === 'function') {
+              window.applyExternalState(cloudData);
+            }
+            isApplyingRemote = false;
+          }
+        } else if (typeof window.getCurrentInventoryState === 'function') {
+          await window.__cloudSync.saveToCloud(window.getCurrentInventoryState());
+        }
 
+        // 2. Escuta alterações em tempo real de qualquer computador conectado
         onSnapshot(
           sharedDocRef,
-          async (snapshot) => {
+          (snapshot) => {
             if (statusLabel) statusLabel.textContent = 'Online • Tempo Real';
             if (statusBox) statusBox.classList.remove('hidden');
 
-            if (snapshot.exists()) {
+            if (snapshot.exists() && !snapshot.metadata.hasPendingWrites) {
               const cloudData = snapshot.data();
               if (cloudData && Array.isArray(cloudData.etiquetas) && Array.isArray(cloudData.demais)) {
+                isApplyingRemote = true;
                 if (typeof window.applyExternalState === 'function') {
                   window.applyExternalState(cloudData);
                 }
+                isApplyingRemote = false;
               }
-            } else if (isFirstSnapshot && typeof window.getCurrentInventoryState === 'function') {
-              await window.__cloudSync.saveToCloud(window.getCurrentInventoryState());
             }
-            isFirstSnapshot = false;
           },
           (error) => {
             console.error('Erro na sincronização em tempo real:', error);
@@ -1461,9 +1475,11 @@
       }
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
+    if (document.readyState === 'loading') {
+      window.addEventListener('load', initCloudSync);
+    } else {
       initCloudSync();
-    });
+    }
   </script>
 
   <!-- Application Logic -->
@@ -1848,17 +1864,22 @@
     };
 
     window.applyExternalState = function(cloudData) {
-      state.etiquetas = cloudData.etiquetas || [];
-      state.demais = cloudData.demais || [];
-      state.patrimonial = Array.isArray(cloudData.patrimonial) ? cloudData.patrimonial : JSON.parse(JSON.stringify(INITIAL_DATA.patrimonial));
+      if (cloudData.operadoresCadastrados && typeof cloudData.operadoresCadastrados === 'object') {
+        SYSTEM_USERS = { ...JSON.parse(JSON.stringify(DEFAULT_SYSTEM_USERS)), ...cloudData.operadoresCadastrados };
+        saveRegisteredOperators(getPersistableUsersMap());
+        if (currentLoggedUser && currentLoggedUser.username && SYSTEM_USERS[currentLoggedUser.username]) {
+          const updatedSession = { username: currentLoggedUser.username, ...SYSTEM_USERS[currentLoggedUser.username] };
+          sessionStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(updatedSession));
+          applyLoggedUserUI(updatedSession);
+        }
+      }
       if (Array.isArray(cloudData.tiposPatrimonio) && cloudData.tiposPatrimonio.length > 0) {
         TIPOS_PATRIMONIO = Array.from(new Set([...DEFAULT_TIPOS_PATRIMONIO, ...cloudData.tiposPatrimonio]));
         saveTiposPatrimonio();
       }
-      if (cloudData.operadoresCadastrados && typeof cloudData.operadoresCadastrados === 'object') {
-        SYSTEM_USERS = { ...JSON.parse(JSON.stringify(DEFAULT_SYSTEM_USERS)), ...cloudData.operadoresCadastrados };
-        saveRegisteredOperators(getPersistableUsersMap());
-      }
+      state.etiquetas = cloudData.etiquetas || [];
+      state.demais = cloudData.demais || [];
+      state.patrimonial = Array.isArray(cloudData.patrimonial) ? cloudData.patrimonial : JSON.parse(JSON.stringify(INITIAL_DATA.patrimonial));
       state.historico = cloudData.historico || [];
       state.mesesHistorico = cloudData.mesesHistorico || [];
       syncHistoricoMensalRetention();
