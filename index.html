@@ -1324,7 +1324,7 @@
       onlineUsersCount: 1
     };
 
-    function mergeHistoricos12Meses(localHist = [], remoteHist = []) {
+    function mergeHistoricosPermanente(localHist = [], remoteHist = []) {
       const map = new Map();
       [...remoteHist, ...localHist].forEach(item => {
         if (!item) return;
@@ -1415,6 +1415,9 @@
         const sharedDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventario_hub_lmg_44', 'estado_atual_limpo');
         const presenceColRef = collection(db, 'artifacts', appId, 'public', 'data', 'inventario_hub_lmg_44', 'estado_atual_limpo', 'sessoes_ativas');
         const myPresenceDocRef = doc(presenceColRef, CLIENT_SESSION_ID);
+        // Cada movimentação é um documento próprio, separado do saldo principal.
+        const movementColRef = collection(sharedDocRef, 'historico_movimentacoes');
+        const remoteMovements = new Map();
 
         let isApplyingRemote = false;
 
@@ -1436,7 +1439,7 @@
                 : [];
               window.applyExternalState({
                 ...cloudData,
-                historico: mergeHistoricos12Meses(localHist, cloudData.historico || [])
+                historico: mergeHistoricosPermanente([...(cloudData.historico || []), ...Array.from(remoteMovements.values())], localHist)
               });
             }
           } finally {
@@ -1481,7 +1484,7 @@
               }
               const nextRev = Math.max(serverRev, knownRev) + 1;
 
-              const mergedHistorico = mergeHistoricos12Meses(
+              const mergedHistorico = mergeHistoricosPermanente(
                 serverData.historico || [],
                 currentState.historico || []
               );
@@ -1524,7 +1527,8 @@
                 tiposPatrimonio: deltaMov
                   ? (serverData.tiposPatrimonio || [])
                   : Array.from(new Set([...(serverData.tiposPatrimonio || []), ...(currentState.tiposPatrimonio || [])])),
-                historico: mergedHistorico,
+                // Registros novos são gravados na subcoleção; aqui ficam só os legados.
+                historico: serverData.historico || [],
                 mesesHistorico: deltaMov
                   ? (serverData.mesesHistorico || [])
                   : Array.from(new Set([...(serverData.mesesHistorico || []), ...(currentState.mesesHistorico || [])])).sort((a, b) => b.localeCompare(a)),
@@ -1535,11 +1539,16 @@
                 updatedAt: new Date().toISOString()
               };
 
+              if (deltaMov && deltaMov.historico && deltaMov.idMov) {
+                const movementRef = doc(movementColRef, String(deltaMov.idMov));
+                transaction.set(movementRef, { ...deltaMov.historico, idMov: String(deltaMov.idMov), timestampMs: Number(deltaMov.historico.timestampMs || Date.now()) });
+              }
               transaction.set(sharedDocRef, payload);
               return { nextRev, payload };
             });
 
             window.__cloudSync.lastAppliedRevision = newRevision.nextRev;
+            if (deltaMov && deltaMov.historico && deltaMov.idMov) remoteMovements.set(String(deltaMov.idMov), deltaMov.historico);
             isApplyingRemote = true;
             try {
               if (typeof window.applyExternalState === 'function') {
@@ -1589,7 +1598,18 @@
           }
         );
 
-        // 2. Listener de presença multiusuário (conta quantos PCs estão com heartbeat recente <= 60s)
+        // 2. Histórico de movimentações em tempo real, independente do documento principal.
+        onSnapshot(movementColRef, (querySnap) => {
+          querySnap.docChanges().forEach((change) => {
+            if (change.type === 'removed') remoteMovements.delete(change.doc.id);
+            else remoteMovements.set(change.doc.id, { ...change.doc.data(), idMov: change.doc.id });
+          });
+          getDocFromServer(sharedDocRef).then((snap) => {
+            if (snap.exists()) applyRemoteSnapshot(snap.data());
+          }).catch((e) => console.warn('Falha ao atualizar histórico:', e));
+        }, (error) => console.error('Erro no listener do histórico:', error));
+
+        // 3. Listener de presença multiusuário (conta quantos PCs estão com heartbeat recente <= 60s)
         onSnapshot(
           presenceColRef,
           (querySnap) => {
@@ -1607,7 +1627,7 @@
           () => {}
         );
 
-        // 3. Busca inicial direta do servidor + Heartbeat + Polling HTTPS de redundância a cada 6s
+        // 4. Busca inicial direta do servidor + Heartbeat + Polling HTTPS de redundância a cada 6s
         sendHeartbeat();
         setInterval(sendHeartbeat, 20000);
 
@@ -2701,6 +2721,8 @@
         });
       }
 
+      deltaMov.idMov = idMovUnico;
+      deltaMov.historico = state.historico[0];
       saveState(deltaMov);
       refreshAll();
       document.getElementById('mov-quantidade').value = '';
