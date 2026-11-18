@@ -22,7 +22,6 @@
       background-color: #020617;
       color: #f1f5f9;
     }
-    /* Custom scrollbar for clean tables */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -55,23 +54,17 @@
   <!-- TELA DE LOGIN / CADASTRO DE OPERADOR                                -->
   <!-- =================================================================== -->
   <div id="login-screen" class="fixed inset-0 z-50 bg-slate-950 flex items-center justify-center p-4 overflow-y-auto">
-    <!-- Padrão de Marcas d'Água Diagonais SPX Express em Alta Resolução no Plano de Fundo -->
     <div aria-hidden="true" class="fixed inset-0 pointer-events-none overflow-hidden z-0">
       <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg" shape-rendering="geometricPrecision">
         <defs>
           <symbol id="spx-watermark-unit" viewBox="0 0 640 256">
-            <!-- Letra S vetorial -->
             <path fill="#ee4d2d" d="M 194 48 L 162 66 C 154 50, 141 42, 122 42 C 102 42, 90 50, 88 62 C 86 74, 97 80, 124 87 C 166 98, 189 115, 184 148 C 178 185, 144 206, 100 206 C 62 206, 39 189, 32 162 L 66 144 C 72 162, 86 172, 106 172 C 128 172, 142 163, 144 150 C 146 138, 136 131, 108 124 C 68 114, 46 97, 51 64 C 56 28, 88 8, 128 8 C 162 8, 185 23, 194 48 Z" />
-            <!-- Letra P vetorial -->
             <path fill="#ee4d2d" fill-rule="evenodd" d="M 230 12 L 314 12 C 356 12, 376 36, 370 74 C 364 112, 336 134, 292 134 L 246 134 L 233 204 L 194 204 Z M 262 46 L 252 100 L 292 100 C 314 100, 328 89, 331 73 C 334 57, 323 46, 302 46 Z" />
-            <!-- Letra X vetorial -->
             <polygon points="402,12 448,12 548,204 502,204" fill="#ee4d2d" />
             <polygon points="538,12 584,12 402,252 356,252" fill="#ee4d2d" />
-            <!-- Barras inclinadas inferiores -->
             <polygon points="32,220 82,220 58,252 8,252" fill="#ee4d2d" />
             <polygon points="96,220 172,220 148,252 72,252" fill="#ee4d2d" />
             <polygon points="186,220 348,220 324,252 162,252" fill="#ee4d2d" />
-            <!-- Texto EXPRESS com largura fixa dentro do viewBox -->
             <text x="424" y="251" fill="#ee4d2d" font-family="'Inter', Arial, sans-serif" font-weight="900" font-style="italic" font-size="44" letter-spacing="1" textLength="204" lengthAdjust="spacingAndGlyphs">EXPRESS</text>
           </symbol>
           <pattern id="spx-diagonal-watermarks" width="640" height="420" patternUnits="userSpaceOnUse" patternTransform="rotate(-24)">
@@ -89,7 +82,6 @@
         <p class="text-xs text-slate-400 mt-1">Autenticação obrigatória para acesso ao sistema</p>
       </div>
 
-      <!-- Alternador Entrar / Cadastrar Operador -->
       <div class="grid grid-cols-2 gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 mb-5">
         <button type="button" id="tab-auth-login" onclick="switchAuthTab('login')" class="py-2 rounded-lg text-xs font-bold transition bg-orange-600 text-white shadow">
           Entrar no Sistema
@@ -205,7 +197,6 @@
   <header id="main-header" class="bg-slate-900/95 backdrop-blur border-b border-slate-800 sticky top-0 z-40 shadow-lg">
     <div class="w-full px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
       <div class="flex items-center gap-3 min-w-0">
-        <!-- Botão Menu Mobile -->
         <button
           type="button"
           onclick="toggleMobileSidebar()"
@@ -231,9 +222,9 @@
           <i data-lucide="user-check" class="w-3.5 h-3.5 text-orange-400"></i>
           <span id="logged-user-name">Operador</span>
         </div>
-        <div id="cloud-sync-status" class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span id="cloud-sync-label">Sincronizando Nuvem...</span>
+        <div id="cloud-sync-status" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30">
+          <span id="cloud-sync-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+          <span id="cloud-sync-label">Conectando Nuvem...</span>
         </div>
         <button
           id="header-admin-btn"
@@ -325,14 +316,10 @@
 
   <!-- Layout Principal com Menu Lateral Esquerdo + Área de Conteúdo -->
   <div class="flex-1 flex items-start relative">
-
-    <!-- Backdrop Mobile Sidebar -->
     <div id="sidebar-backdrop" onclick="toggleMobileSidebar()" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden lg:hidden"></div>
 
-    <!-- Menu Lateral Esquerdo (Sidebar com todos os pilares) -->
     <aside id="left-sidebar" class="fixed lg:sticky lg:top-[73px] lg:h-[calc(100dvh-73px)] inset-y-0 left-0 z-50 lg:z-20 w-72 bg-slate-900 border-r border-slate-800 flex flex-col justify-between overflow-hidden transform -translate-x-full lg:translate-x-0 transition-all duration-200 ease-in-out shrink-0">
       <div id="sidebar-scroll-area" class="flex-1 min-h-0 p-4 space-y-6 overflow-y-auto overflow-x-hidden">
-        <!-- Cabeçalho Mobile Sidebar -->
         <div class="flex items-center justify-between lg:hidden pb-3 border-b border-slate-800">
           <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Navegação do Sistema</span>
           <button onclick="toggleMobileSidebar()" class="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white">
@@ -340,7 +327,6 @@
           </button>
         </div>
 
-        <!-- Grupo 1: Visão Geral -->
         <div>
           <p class="sidebar-group-title px-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Visão Geral</p>
           <nav class="space-y-1">
@@ -360,7 +346,6 @@
           </nav>
         </div>
 
-        <!-- Grupo 2: Pilares Operacionais -->
         <div>
           <p class="sidebar-group-title px-3 text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Pilares do Inventário</p>
           <nav class="space-y-1.5">
@@ -430,13 +415,12 @@
                 <i data-lucide="clock" class="w-4 h-4 text-purple-400 shrink-0"></i>
                 <span class="sidebar-label truncate">Histórico</span>
               </span>
-              <span id="badge-count-historico" class="sidebar-badge px-2 py-0.5 text-xs rounded-full bg-slate-800 text-slate-300">4</span>
+              <span id="badge-count-historico" class="sidebar-badge px-2 py-0.5 text-xs rounded-full bg-slate-800 text-slate-300">0</span>
             </button>
           </nav>
         </div>
       </div>
 
-      <!-- Botão Recolher Menu posicionado no canto inferior direito acima do rodapé -->
       <div id="sidebar-collapse-bar" class="shrink-0 px-3.5 pb-2.5 pt-1 flex justify-end">
         <button
           type="button"
@@ -450,7 +434,6 @@
         </button>
       </div>
 
-      <!-- Rodapé do Menu Lateral -->
       <div id="sidebar-footer" class="shrink-0 p-3.5 border-t border-slate-800 bg-slate-950/80">
         <div id="sidebar-unit-info" class="flex items-center gap-2.5 text-xs text-slate-400">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
@@ -466,7 +449,6 @@
       <!-- TELA INICIAL (DASHBOARD: GRÁFICOS DE CONSUMO + ALERTAS DE ESTOQUE)  -->
       <!-- =================================================================== -->
       <div id="view-dashboard" class="space-y-6">
-        <!-- Cabeçalho da Tela Inicial -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
             <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Painel de Consumo & Alertas de Estoque</h2>
@@ -482,7 +464,6 @@
           </button>
         </div>
 
-        <!-- Seção de Notificações de Insumos em Baixa Quantidade -->
         <section aria-label="Notificações de Estoque Baixo" class="bg-slate-900 rounded-2xl border border-amber-500/30 shadow-lg overflow-hidden">
           <div class="bg-amber-500/10 px-6 py-4 border-b border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div class="flex items-center gap-3">
@@ -499,14 +480,10 @@
             </div>
           </div>
 
-          <div id="dashboard-low-stock-list" class="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            <!-- Populado via JS -->
-          </div>
+          <div id="dashboard-low-stock-list" class="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
         </section>
 
-        <!-- Seção de Gráficos de Histórico de Consumo por Equipe -->
         <section aria-label="Gráficos de Histórico de Consumo por Equipe" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <!-- Gráfico Equipe FM -->
           <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-lg p-6 flex flex-col">
             <div class="flex items-center justify-between gap-2 mb-4">
               <div>
@@ -523,7 +500,6 @@
             </div>
           </div>
 
-          <!-- Gráfico Equipe LM T1 -->
           <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-lg p-6 flex flex-col">
             <div class="flex items-center justify-between gap-2 mb-4">
               <div>
@@ -540,7 +516,6 @@
             </div>
           </div>
 
-          <!-- Gráfico Equipe LM T3 -->
           <div class="bg-slate-900 rounded-2xl border border-slate-800 shadow-lg p-6 flex flex-col">
             <div class="flex items-center justify-between gap-2 mb-4">
               <div>
@@ -581,7 +556,6 @@
 
         <form id="form-movimentacao" class="p-6">
           <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-            <!-- Responsável -->
             <div class="md:col-span-3">
               <label for="mov-responsavel" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                 Responsável (Equipe) *
@@ -603,7 +577,6 @@
               </div>
             </div>
 
-            <!-- Operação (Inclusão / Retirada) -->
             <div class="md:col-span-3">
               <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                 Operação *
@@ -631,7 +604,6 @@
               <input type="hidden" id="mov-operacao" value="Inclusão" />
             </div>
 
-            <!-- Código / Item -->
             <div class="md:col-span-4">
               <label for="mov-item-select" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                 Código / Item *
@@ -640,12 +612,9 @@
                 id="mov-item-select"
                 required
                 class="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-slate-100 focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition"
-              >
-                <!-- Populado via JS -->
-              </select>
+              ></select>
             </div>
 
-            <!-- Quantidade (Caixas / Embalagens) -->
             <div class="md:col-span-2">
               <label for="mov-quantidade" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                 Qtd. (Caixas/Emb.) *
@@ -662,7 +631,6 @@
             </div>
           </div>
 
-          <!-- Preview & Submit Row -->
           <div class="mt-4 pt-4 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div id="mov-preview-info" class="text-xs text-slate-400 flex items-center gap-2">
               <i data-lucide="info" class="w-4 h-4 text-orange-400 shrink-0"></i>
@@ -696,7 +664,6 @@
         </div>
 
         <div class="p-4 sm:p-6 space-y-4">
-          <!-- Filtros e Busca -->
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div class="relative flex-1 max-w-md">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -729,7 +696,6 @@
             </div>
           </div>
 
-          <!-- Tabela Responsiva -->
           <div class="overflow-x-auto rounded-xl border border-slate-800">
             <table class="min-w-full divide-y divide-slate-800 text-sm">
               <thead class="bg-slate-950 text-slate-400 font-bold text-xs uppercase tracking-wider">
@@ -746,9 +712,7 @@
                   <th class="px-4 py-3.5 text-center">Ação Rápida</th>
                 </tr>
               </thead>
-              <tbody id="tbody-etiquetas" class="divide-y divide-slate-800/80 bg-slate-900">
-                <!-- Renderizado via JS -->
-              </tbody>
+              <tbody id="tbody-etiquetas" class="divide-y divide-slate-800/80 bg-slate-900"></tbody>
             </table>
           </div>
         </div>
@@ -800,9 +764,7 @@
                   <th class="px-4 py-3.5 text-center">Ação Rápida</th>
                 </tr>
               </thead>
-              <tbody id="tbody-demais" class="divide-y divide-slate-800/80 bg-slate-900">
-                <!-- Renderizado via JS -->
-              </tbody>
+              <tbody id="tbody-demais" class="divide-y divide-slate-800/80 bg-slate-900"></tbody>
             </table>
           </div>
         </div>
@@ -828,7 +790,6 @@
           </span>
         </div>
 
-        <!-- Abas Internas do Pilar Patrimonial: Consulta e Edição -->
         <div class="px-6 pt-4 border-b border-slate-800 bg-slate-950/40 flex flex-wrap gap-2">
           <button
             type="button"
@@ -850,7 +811,6 @@
           </button>
         </div>
 
-        <!-- SUB-ABA 1: CONSULTA PATRIMONIAL -->
         <div id="pat-subview-consulta" class="p-4 sm:p-6 space-y-4">
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div class="relative flex-1 max-w-md">
@@ -893,16 +853,12 @@
                   <th class="px-4 py-3.5 text-center">Status</th>
                 </tr>
               </thead>
-              <tbody id="tbody-patrimonial" class="divide-y divide-slate-800/80 bg-slate-900">
-                <!-- Renderizado via JS -->
-              </tbody>
+              <tbody id="tbody-patrimonial" class="divide-y divide-slate-800/80 bg-slate-900"></tbody>
             </table>
           </div>
         </div>
 
-        <!-- SUB-ABA 2: EDIÇÃO E CADASTRO PATRIMONIAL -->
         <div id="pat-subview-edicao" class="hidden p-4 sm:p-6 space-y-6">
-          <!-- Formulário Independente de Inclusão de Novo Bem Patrimonial -->
           <form id="form-novo-patrimonial" onsubmit="adicionarItemPatrimonial(event)" class="bg-slate-950/70 p-5 rounded-2xl border border-slate-800 space-y-4">
             <div class="flex items-center gap-2 text-sm font-bold text-amber-300">
               <i data-lucide="plus-circle" class="w-4 h-4"></i>
@@ -916,9 +872,7 @@
               </div>
               <div>
                 <label for="pat-new-tipo" class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Tipo de Patrimônio *</label>
-                <select id="pat-new-tipo" required onchange="onPatrimonioTipoSelectChange(this)" class="w-full px-2.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500">
-                  <!-- Populado via JS -->
-                </select>
+                <select id="pat-new-tipo" required onchange="onPatrimonioTipoSelectChange(this)" class="w-full px-2.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"></select>
                 <div id="pat-custom-tipo-wrapper" class="hidden mt-1.5 flex items-center gap-1.5">
                   <input
                     type="text"
@@ -967,7 +921,6 @@
             </div>
           </form>
 
-          <!-- Tabela Editável Direta do Patrimonial -->
           <div class="space-y-3">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <h3 class="text-sm font-bold text-white flex items-center gap-2">
@@ -1001,9 +954,7 @@
                     <th class="px-3 py-3 text-center">Ações</th>
                   </tr>
                 </thead>
-                <tbody id="tbody-patrimonial-edit" class="divide-y divide-slate-800/80 bg-slate-900">
-                  <!-- Renderizado via JS -->
-                </tbody>
+                <tbody id="tbody-patrimonial-edit" class="divide-y divide-slate-800/80 bg-slate-900"></tbody>
               </table>
             </div>
           </div>
@@ -1035,7 +986,6 @@
           </button>
         </div>
 
-        <!-- Abas Internas do Administrador -->
         <div class="px-6 pt-4 border-b border-slate-800 bg-slate-950/40 flex flex-wrap gap-2">
           <button
             type="button"
@@ -1066,10 +1016,8 @@
           </button>
         </div>
 
-        <!-- SUB-ABA A: CADASTRAR NOVO ITEM -->
         <div id="admin-subview-cadastro" class="p-6 max-w-3xl mx-auto">
           <form id="form-novo-item" class="space-y-5 bg-slate-950/70 p-6 rounded-2xl border border-slate-800">
-            <!-- Categoria -->
             <div>
               <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Categoria de Destino *</label>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1111,7 +1059,6 @@
               </div>
             </div>
 
-            <!-- Campos específicos de Etiquetas/Ribbon -->
             <div id="campos-especificos-etiquetas" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div class="sm:col-span-3">
                 <label for="novo-descricao" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Descrição Completa *</label>
@@ -1131,7 +1078,6 @@
               </div>
             </div>
 
-            <!-- Quantidades Iniciais -->
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
               <div>
                 <label for="novo-qtd-caixas" id="label-qtd-caixas" class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">Qtd. Inicial de Caixas *</label>
@@ -1152,7 +1098,6 @@
           </form>
         </div>
 
-        <!-- SUB-ABA B: EDITAR BANCO DE DADOS -->
         <div id="admin-subview-editar" class="hidden p-4 sm:p-6 space-y-6">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/70 p-4 rounded-xl border border-slate-800">
             <div class="flex items-center gap-2.5 text-xs text-slate-300">
@@ -1173,7 +1118,6 @@
             </div>
           </div>
 
-          <!-- Tabela Editável 1: Etiquetas e Ribbon -->
           <div class="space-y-2.5">
             <h3 class="text-sm font-bold text-indigo-300 flex items-center gap-2">
               <i data-lucide="tag" class="w-4 h-4"></i>
@@ -1194,14 +1138,11 @@
                     <th class="px-3 py-3 text-center">Ações</th>
                   </tr>
                 </thead>
-                <tbody id="tbody-admin-etiquetas" class="divide-y divide-slate-800/80 bg-slate-900">
-                  <!-- Populado via JS -->
-                </tbody>
+                <tbody id="tbody-admin-etiquetas" class="divide-y divide-slate-800/80 bg-slate-900"></tbody>
               </table>
             </div>
           </div>
 
-          <!-- Tabela Editável 2: Demais Insumos -->
           <div class="space-y-2.5">
             <h3 class="text-sm font-bold text-emerald-300 flex items-center gap-2">
               <i data-lucide="package-open" class="w-4 h-4"></i>
@@ -1218,15 +1159,12 @@
                     <th class="px-3 py-3 text-center">Ações</th>
                   </tr>
                 </thead>
-                <tbody id="tbody-admin-demais" class="divide-y divide-slate-800/80 bg-slate-900">
-                  <!-- Populado via JS -->
-                </tbody>
+                <tbody id="tbody-admin-demais" class="divide-y divide-slate-800/80 bg-slate-900"></tbody>
               </table>
             </div>
           </div>
         </div>
 
-        <!-- SUB-ABA C: GESTÃO DE USUÁRIOS -->
         <div id="admin-subview-usuarios" class="hidden p-4 sm:p-6 space-y-4">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/70 p-4 rounded-xl border border-slate-800">
             <div class="flex items-center gap-2.5 text-xs text-slate-300">
@@ -1260,9 +1198,7 @@
                   <th class="px-3 py-3 text-center">Ações</th>
                 </tr>
               </thead>
-              <tbody id="tbody-admin-usuarios" class="divide-y divide-slate-800/80 bg-slate-900">
-                <!-- Populado via JS -->
-              </tbody>
+              <tbody id="tbody-admin-usuarios" class="divide-y divide-slate-800/80 bg-slate-900"></tbody>
             </table>
           </div>
         </div>
@@ -1346,9 +1282,7 @@
                   <th class="px-4 py-3.5 text-left">Categoria</th>
                 </tr>
               </thead>
-              <tbody id="tbody-historico" class="divide-y divide-slate-800/80 bg-slate-900">
-                <!-- Renderizado via JS -->
-              </tbody>
+              <tbody id="tbody-historico" class="divide-y divide-slate-800/80 bg-slate-900"></tbody>
             </table>
           </div>
         </div>
@@ -1361,28 +1295,33 @@
   <footer class="bg-slate-900 border-t border-slate-800 py-4">
     <div class="w-full px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2">
       <span>Sistema de Controle de Inventário • <strong class="text-slate-200">SPX Express — HUB LMG 44</strong> • desenvolvido por Dian Ribeiro Ferreira</span>
-      <span id="footer-sync-info">Sincronizado em tempo real na nuvem para todos os usuários com acesso.</span>
+      <span id="footer-sync-info">Sincronização multiusuário em tempo real via HTTPS (Long-Polling + Snapshot).</span>
     </div>
   </footer>
 
-  <!-- Integração em Nuvem (Tempo Real com Transação e Mesclagem de Histórico) -->
+  <!-- Integração em Nuvem Multiusuário (Long-Polling HTTPS + Presença + Transação Atômica) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import {
       initializeFirestore,
-      persistentLocalCache,
-      persistentMultipleTabManager,
+      memoryLocalCache,
       doc,
+      setDoc,
       getDocFromServer,
       runTransaction,
-      onSnapshot
+      onSnapshot,
+      collection,
+      deleteDoc
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const CLIENT_SESSION_ID = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
     window.__cloudSync = {
       enabled: false,
       saveToCloud: null,
-      lastAppliedRevision: 0
+      lastAppliedRevision: 0,
+      onlineUsersCount: 1
     };
 
     function mergeHistoricos12Meses(localHist = [], remoteHist = []) {
@@ -1405,15 +1344,27 @@
     async function initCloudSync() {
       const statusLabel = document.getElementById('cloud-sync-label');
       const statusBox = document.getElementById('cloud-sync-status');
+      const statusDot = document.getElementById('cloud-sync-dot');
 
       const setCloudStatus = (text, isOnline) => {
         if (statusBox) statusBox.classList.remove('hidden');
         if (statusLabel) statusLabel.textContent = text;
+        if (statusDot) {
+          statusDot.className = isOnline
+            ? 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse'
+            : 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+        }
         if (statusBox) {
           statusBox.className = isOnline
             ? 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
             : 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30';
         }
+      };
+
+      const renderOnlineBadge = () => {
+        const count = Math.max(1, window.__cloudSync.onlineUsersCount || 1);
+        const suffix = count === 1 ? '1 online' : `${count} online`;
+        setCloudStatus(`Online (${suffix})`, true);
       };
 
       try {
@@ -1433,8 +1384,12 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
+        // Força Long-Polling HTTPS (ignora bloqueio de WebSocket/gRPC de firewalls corporativos)
+        // e usa memoryLocalCache para evitar trava de lock IndexedDB entre múltiplas abas/PCs
         const db = initializeFirestore(app, {
-          localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+          experimentalForceLongPolling: true,
+          useFetchStreams: false,
+          localCache: memoryLocalCache()
         });
 
         try {
@@ -1447,17 +1402,20 @@
           console.error('Erro de autenticação Firebase:', authErr);
           setCloudStatus(`Erro Auth (${authErr.code || 'Domínio'})`, false);
           if (typeof showToast === 'function') {
-            showToast('Falha na autenticação com a nuvem. Verifique os domínios autorizados no Firebase.', 'error');
+            showToast('Falha na autenticação com a nuvem. Adicione o domínio no Firebase Console > Authentication > Authorized domains.', 'error');
           }
           return;
         }
 
         if (!auth.currentUser) {
-          setCloudStatus('Modo Local (Sem Autenticação)', false);
+          setCloudStatus('Modo Local (Sem Auth)', false);
           return;
         }
 
         const sharedDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventario_hub_lmg_44', 'estado_atual_limpo');
+        const presenceColRef = collection(db, 'artifacts', appId, 'public', 'data', 'inventario_hub_lmg_44', 'estado_atual_limpo', 'sessoes_ativas');
+        const myPresenceDocRef = doc(presenceColRef, CLIENT_SESSION_ID);
+
         let isApplyingRemote = false;
 
         const applyRemoteSnapshot = (cloudData) => {
@@ -1486,9 +1444,25 @@
           }
         };
 
+        // Heartbeat de presença para manter múltiplos computadores online simultaneamente
+        const sendHeartbeat = async () => {
+          if (!navigator.onLine || !auth.currentUser) return;
+          try {
+            const u = window.getLoggedUserInfo ? window.getLoggedUserInfo() : null;
+            await setDoc(myPresenceDocRef, {
+              sessionId: CLIENT_SESSION_ID,
+              user: u ? u.username : 'visitante',
+              nome: u ? u.nome : 'Estação HUB',
+              lastSeenMs: Date.now()
+            });
+          } catch (e) {
+            console.warn('Heartbeat falhou:', e);
+          }
+        };
+
         window.__cloudSync.enabled = true;
 
-        // Gravação atômica via Transaction: lê o estado mais recente do servidor, mescla o histórico e grava
+        // Gravação atômica via Transaction
         window.__cloudSync.saveToCloud = async (currentState, deltaMov = null) => {
           if (!auth.currentUser || isApplyingRemote) return;
           setCloudStatus('Sincronizando...', false);
@@ -1559,7 +1533,7 @@
             } finally {
               isApplyingRemote = false;
             }
-            setCloudStatus('Online • Tempo Real', true);
+            renderOnlineBadge();
           } catch (err) {
             console.error('Erro na transação com a nuvem:', err);
             if (String(err.message || '').startsWith('SALDO_INSUFICIENTE:')) {
@@ -1569,72 +1543,89 @@
               }
               const fresh = await getDocFromServer(sharedDocRef);
               if (fresh.exists()) applyRemoteSnapshot(fresh.data());
+              renderOnlineBadge();
             } else {
-              setCloudStatus('Offline (Aguardando Rede)', false);
-              if (typeof showToast === 'function') {
-                showToast('Sem conexão com o servidor. A alteração será sincronizada quando voltar online.', 'warning');
-              }
+              setCloudStatus(`Falha Rede (${err.code || 'Erro'})`, false);
             }
           }
         };
 
-        // 1. Leitura inicial obrigatória do servidor
-        try {
-          const serverSnap = await getDocFromServer(sharedDocRef);
-          if (serverSnap.exists()) {
-            applyRemoteSnapshot(serverSnap.data());
-            setCloudStatus('Online • Tempo Real', true);
-          } else if (typeof window.getCurrentInventoryState === 'function') {
-            await window.__cloudSync.saveToCloud(window.getCurrentInventoryState());
-          }
-        } catch (serverErr) {
-          console.warn('Falha na leitura inicial do servidor:', serverErr);
-          setCloudStatus('Offline (Modo Local)', false);
-        }
-
-        // 2. Listener em tempo real para todas as telas conectadas
+        // 1. Inicia os listeners em tempo real imediatamente (não bloqueia em getDocFromServer)
         onSnapshot(
           sharedDocRef,
-          { includeMetadataChanges: true },
           (snapshot) => {
-            if (!navigator.onLine) {
-              setCloudStatus('Offline (Modo Local)', false);
-              return;
-            }
-            if (!snapshot.metadata.fromCache) {
-              setCloudStatus('Online • Tempo Real', true);
-            }
-            if (snapshot.exists() && !snapshot.metadata.hasPendingWrites) {
+            renderOnlineBadge();
+            if (snapshot.exists()) {
               applyRemoteSnapshot(snapshot.data());
+            } else if (typeof window.getCurrentInventoryState === 'function') {
+              window.__cloudSync.saveToCloud(window.getCurrentInventoryState());
             }
           },
           (error) => {
-            console.error('Erro no listener em tempo real:', error);
-            setCloudStatus('Erro de Conexão Nuvem', false);
+            console.error('Erro no listener de inventário:', error);
+            setCloudStatus(`Offline (${error.code || 'Permissão'})`, false);
           }
         );
 
-        // 3. Reconexão automática ao voltar a internet
-        window.addEventListener('online', async () => {
-          setCloudStatus('Sincronizando...', false);
+        // 2. Listener de presença multiusuário (conta quantos PCs estão com heartbeat recente <= 60s)
+        onSnapshot(
+          presenceColRef,
+          (querySnap) => {
+            const now = Date.now();
+            let activeCount = 0;
+            querySnap.forEach((docItem) => {
+              const d = docItem.data();
+              if (d && (now - Number(d.lastSeenMs || 0)) <= 65000) {
+                activeCount++;
+              }
+            });
+            window.__cloudSync.onlineUsersCount = Math.max(1, activeCount);
+            renderOnlineBadge();
+          },
+          () => {}
+        );
+
+        // 3. Busca inicial direta do servidor + Heartbeat + Polling HTTPS de redundância a cada 6s
+        sendHeartbeat();
+        setInterval(sendHeartbeat, 20000);
+
+        setInterval(async () => {
+          if (!navigator.onLine || isApplyingRemote) return;
           try {
-            const freshSnap = await getDocFromServer(sharedDocRef);
-            if (freshSnap.exists()) {
-              applyRemoteSnapshot(freshSnap.data());
+            const snap = await getDocFromServer(sharedDocRef);
+            if (snap.exists()) {
+              const data = snap.data();
+              const rev = Number(data.revision || 0);
+              if (rev > window.__cloudSync.lastAppliedRevision) {
+                applyRemoteSnapshot(data);
+              }
+              renderOnlineBadge();
             }
-            setCloudStatus('Online • Tempo Real', true);
-          } catch (e) {
-            console.error('Erro ao reconectar:', e);
+          } catch (pollErr) {
+            // Silencioso; o onSnapshot principal continua ativo
           }
+        }, 6000);
+
+        window.addEventListener('beforeunload', () => {
+          deleteDoc(myPresenceDocRef).catch(() => {});
+        });
+
+        window.addEventListener('online', () => {
+          setCloudStatus('Reconectando...', false);
+          sendHeartbeat();
+          getDocFromServer(sharedDocRef).then(s => {
+            if (s.exists()) applyRemoteSnapshot(s.data());
+            renderOnlineBadge();
+          }).catch(() => {});
         });
 
         window.addEventListener('offline', () => {
-          setCloudStatus('Offline (Modo Local)', false);
+          setCloudStatus('Sem Internet (Offline)', false);
         });
 
       } catch (err) {
         console.error('Falha crítica ao iniciar nuvem:', err);
-        setCloudStatus('Modo Local', false);
+        setCloudStatus('Erro Inicialização Nuvem', false);
       }
     }
 
@@ -1687,6 +1678,10 @@
 
     let SYSTEM_USERS = JSON.parse(JSON.stringify(DEFAULT_SYSTEM_USERS));
     let currentLoggedUser = null;
+
+    window.getLoggedUserInfo = function() {
+      return currentLoggedUser;
+    };
 
     function getPersistableUsersMap() {
       const custom = {};
@@ -3678,7 +3673,6 @@
     function exportToCSV() {
       const dataStr = new Date().toISOString().slice(0, 10);
 
-      // Aba 1: Etiquetas e Ribbon
       const rowsEtiquetas = state.etiquetas.map(i => ({
         'Código': i.codigo,
         'Item': i.item,
@@ -3691,7 +3685,6 @@
         'Qtd. de Pallets': Number(i.qtdPallets || 0)
       }));
 
-      // Aba 2: Demais Insumos
       const rowsDemais = state.demais.map(i => ({
         'Código': i.codigo,
         'Item': i.item,
@@ -3700,7 +3693,6 @@
         'Quantidade Total': Number(i.embalagem || 0) * Number(i.qtdPorEmbalagem || 0)
       }));
 
-      // Aba 3: Patrimonial
       const rowsPatrimonial = (state.patrimonial || []).map(i => {
         const serieVal = i.numeroSerie !== undefined ? i.numeroSerie : (i.serieModelo || '-');
         const modeloVal = i.modelo !== undefined ? i.modelo : '-';
@@ -3715,7 +3707,6 @@
         };
       });
 
-      // Aba 4: Histórico
       const rowsHistorico = state.historico.map(h => ({
         'Data e Hora': h.dataHora,
         'Mês Ref.': formatMonthLabel(h.mesRef),
@@ -3761,7 +3752,6 @@
         return;
       }
 
-      // Fallback CSV caso SheetJS não carregue
       let csv = '\uFEFF';
       csv += '=== ETIQUETAS E RIBBON - HUB LMG 44 ===\n';
       csv += 'Código;Item;Descrição;Dimensões;Cor;Qtd. de Caixas;Itens/CX;Qtd. de Itens;Qtd. de Pallets\n';
