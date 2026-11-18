@@ -1365,7 +1365,7 @@
     </div>
   </footer>
 
-  <!-- Integração em Nuvem (Tempo Real) -->
+  <!-- Integração em Nuvem (Tempo Real com Transação e Mesclagem de Histórico) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -1375,20 +1375,31 @@
       persistentMultipleTabManager,
       doc,
       getDocFromServer,
-      setDoc,
+      runTransaction,
       onSnapshot
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     window.__cloudSync = {
       enabled: false,
       saveToCloud: null,
-      lastAppliedUpdatedAt: 0
+      lastAppliedRevision: 0
     };
 
-    function parseTimestamp(isoStr) {
-      if (!isoStr) return 0;
-      const t = Date.parse(isoStr);
-      return Number.isNaN(t) ? 0 : t;
+    function mergeHistoricos12Meses(localHist = [], remoteHist = []) {
+      const map = new Map();
+      [...remoteHist, ...localHist].forEach(item => {
+        if (!item) return;
+        const key = item.idMov || `${item.dataHora}|${item.codigo}|${item.operacao}|${item.quantidade}|${item.responsavel}`;
+        if (!map.has(key)) {
+          map.set(key, { ...item, idMov: key });
+        }
+      });
+      return Array.from(map.values()).sort((a, b) => {
+        const tsA = a.timestampMs || 0;
+        const tsB = b.timestampMs || 0;
+        if (tsA !== tsB) return tsB - tsA;
+        return String(b.dataHora || '').localeCompare(String(a.dataHora || ''));
+      });
     }
 
     async function initCloudSync() {
@@ -1422,15 +1433,23 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // Cache persistente multi-abas com sincronização real de servidor
         const db = initializeFirestore(app, {
           localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
         });
 
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
+        try {
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+        } catch (authErr) {
+          console.error('Erro de autenticação Firebase:', authErr);
+          setCloudStatus(`Erro Auth (${authErr.code || 'Domínio'})`, false);
+          if (typeof showToast === 'function') {
+            showToast('Falha na autenticação com a nuvem. Verifique os domínios autorizados no Firebase.', 'error');
+          }
+          return;
         }
 
         if (!auth.currentUser) {
@@ -1441,19 +1460,26 @@
         const sharedDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventario_hub_lmg_44', 'estado_atual_limpo');
         let isApplyingRemote = false;
 
-        const applyIfNewer = (cloudData) => {
+        const applyRemoteSnapshot = (cloudData) => {
           if (!cloudData || !Array.isArray(cloudData.etiquetas) || !Array.isArray(cloudData.demais)) return;
-          const remoteTs = parseTimestamp(cloudData.updatedAt);
-          if (remoteTs > 0 && remoteTs < window.__cloudSync.lastAppliedUpdatedAt) {
+          const rev = Number(cloudData.revision || 0);
+          if (rev > 0 && rev < window.__cloudSync.lastAppliedRevision) {
             return;
           }
-          if (remoteTs > 0) {
-            window.__cloudSync.lastAppliedUpdatedAt = remoteTs;
+          if (rev > 0) {
+            window.__cloudSync.lastAppliedRevision = rev;
           }
+
           isApplyingRemote = true;
           try {
             if (typeof window.applyExternalState === 'function') {
-              window.applyExternalState(cloudData);
+              const localHist = (typeof window.getCurrentInventoryState === 'function')
+                ? (window.getCurrentInventoryState().historico || [])
+                : [];
+              window.applyExternalState({
+                ...cloudData,
+                historico: mergeHistoricos12Meses(localHist, cloudData.historico || [])
+              });
             }
           } finally {
             isApplyingRemote = false;
@@ -1461,79 +1487,144 @@
         };
 
         window.__cloudSync.enabled = true;
-        window.__cloudSync.saveToCloud = async (currentState) => {
+
+        // Gravação atômica via Transaction: lê o estado mais recente do servidor, mescla o histórico e grava
+        window.__cloudSync.saveToCloud = async (currentState, deltaMov = null) => {
           if (!auth.currentUser || isApplyingRemote) return;
-          const nowIso = new Date().toISOString();
-          window.__cloudSync.lastAppliedUpdatedAt = parseTimestamp(nowIso);
+          setCloudStatus('Sincronizando...', false);
+
           try {
-            await setDoc(sharedDocRef, {
-              etiquetas: currentState.etiquetas || [],
-              demais: currentState.demais || [],
-              patrimonial: currentState.patrimonial || [],
-              tiposPatrimonio: currentState.tiposPatrimonio || [],
-              historico: currentState.historico || [],
-              mesesHistorico: currentState.mesesHistorico || [],
-              operadoresCadastrados: currentState.operadoresCadastrados || {},
-              updatedAt: nowIso
+            const newRevision = await runTransaction(db, async (transaction) => {
+              const sfDoc = await transaction.get(sharedDocRef);
+              const serverData = sfDoc.exists() ? sfDoc.data() : {};
+              const serverRev = Number(serverData.revision || 0);
+              const nextRev = Math.max(serverRev, window.__cloudSync.lastAppliedRevision) + 1;
+
+              const mergedHistorico = mergeHistoricos12Meses(
+                currentState.historico || [],
+                serverData.historico || []
+              );
+
+              let nextEtiquetas = currentState.etiquetas || [];
+              let nextDemais = currentState.demais || [];
+
+              if (deltaMov && sfDoc.exists() && Array.isArray(serverData.etiquetas) && Array.isArray(serverData.demais)) {
+                nextEtiquetas = JSON.parse(JSON.stringify(serverData.etiquetas));
+                nextDemais = JSON.parse(JSON.stringify(serverData.demais));
+
+                const etqTarget = nextEtiquetas.find(i => i.codigo === deltaMov.codigo);
+                const demTarget = nextDemais.find(i => i.codigo === deltaMov.codigo);
+
+                if (etqTarget) {
+                  const atual = Number(etqTarget.qtdCaixas || 0);
+                  if (deltaMov.operacao === 'Retirada' && atual < deltaMov.quantidade) {
+                    throw new Error(`SALDO_INSUFICIENTE:${atual}`);
+                  }
+                  etqTarget.qtdCaixas = deltaMov.operacao === 'Inclusão'
+                    ? atual + deltaMov.quantidade
+                    : atual - deltaMov.quantidade;
+                } else if (demTarget) {
+                  const atual = Number(demTarget.embalagem || 0);
+                  if (deltaMov.operacao === 'Retirada' && atual < deltaMov.quantidade) {
+                    throw new Error(`SALDO_INSUFICIENTE:${atual}`);
+                  }
+                  demTarget.embalagem = deltaMov.operacao === 'Inclusão'
+                    ? atual + deltaMov.quantidade
+                    : atual - deltaMov.quantidade;
+                }
+              }
+
+              const payload = {
+                etiquetas: nextEtiquetas,
+                demais: nextDemais,
+                patrimonial: currentState.patrimonial || serverData.patrimonial || [],
+                tiposPatrimonio: Array.from(new Set([...(serverData.tiposPatrimonio || []), ...(currentState.tiposPatrimonio || [])])),
+                historico: mergedHistorico,
+                mesesHistorico: Array.from(new Set([...(serverData.mesesHistorico || []), ...(currentState.mesesHistorico || [])])).sort((a, b) => b.localeCompare(a)),
+                operadoresCadastrados: { ...(serverData.operadoresCadastrados || {}), ...(currentState.operadoresCadastrados || {}) },
+                revision: nextRev,
+                updatedAt: new Date().toISOString()
+              };
+
+              transaction.set(sharedDocRef, payload);
+              return { nextRev, payload };
             });
+
+            window.__cloudSync.lastAppliedRevision = newRevision.nextRev;
+            isApplyingRemote = true;
+            try {
+              if (typeof window.applyExternalState === 'function') {
+                window.applyExternalState(newRevision.payload);
+              }
+            } finally {
+              isApplyingRemote = false;
+            }
             setCloudStatus('Online • Tempo Real', true);
           } catch (err) {
-            console.error('Erro ao salvar estado compartilhado:', err);
-            setCloudStatus('Falha ao Sincronizar', false);
-            if (typeof showToast === 'function') {
-              showToast('Erro ao salvar na nuvem. Verifique sua conexão.', 'error');
+            console.error('Erro na transação com a nuvem:', err);
+            if (String(err.message || '').startsWith('SALDO_INSUFICIENTE:')) {
+              const saldoReal = err.message.split(':')[1];
+              if (typeof showToast === 'function') {
+                showToast(`Outro computador acabou de movimentar este item! Saldo atual: ${saldoReal}.`, 'error');
+              }
+              const fresh = await getDocFromServer(sharedDocRef);
+              if (fresh.exists()) applyRemoteSnapshot(fresh.data());
+            } else {
+              setCloudStatus('Offline (Aguardando Rede)', false);
+              if (typeof showToast === 'function') {
+                showToast('Sem conexão com o servidor. A alteração será sincronizada quando voltar online.', 'warning');
+              }
             }
           }
         };
 
-        // 1. Busca obrigatoriamente do SERVIDOR ao abrir (ignora cache velho)
+        // 1. Leitura inicial obrigatória do servidor
         try {
           const serverSnap = await getDocFromServer(sharedDocRef);
           if (serverSnap.exists()) {
-            applyIfNewer(serverSnap.data());
+            applyRemoteSnapshot(serverSnap.data());
             setCloudStatus('Online • Tempo Real', true);
           } else if (typeof window.getCurrentInventoryState === 'function') {
             await window.__cloudSync.saveToCloud(window.getCurrentInventoryState());
           }
         } catch (serverErr) {
-          console.warn('Não foi possível ler diretamente do servidor na inicialização:', serverErr);
+          console.warn('Falha na leitura inicial do servidor:', serverErr);
+          setCloudStatus('Offline (Modo Local)', false);
         }
 
-        // 2. Escuta alterações em tempo real (incluindo metadados de cache/servidor)
+        // 2. Listener em tempo real para todas as telas conectadas
         onSnapshot(
           sharedDocRef,
           { includeMetadataChanges: true },
           (snapshot) => {
-            const isFromCache = snapshot.metadata.fromCache;
-            const hasPending = snapshot.metadata.hasPendingWrites;
-
-            if (!navigator.onLine || (isFromCache && !hasPending)) {
-              setCloudStatus('Reconectando à Nuvem...', false);
-            } else {
+            if (!navigator.onLine) {
+              setCloudStatus('Offline (Modo Local)', false);
+              return;
+            }
+            if (!snapshot.metadata.fromCache) {
               setCloudStatus('Online • Tempo Real', true);
             }
-
-            if (snapshot.exists() && !isFromCache && !hasPending) {
-              applyIfNewer(snapshot.data());
+            if (snapshot.exists() && !snapshot.metadata.hasPendingWrites) {
+              applyRemoteSnapshot(snapshot.data());
             }
           },
           (error) => {
-            console.error('Erro na sincronização em tempo real:', error);
-            setCloudStatus('Offline (Modo Local)', false);
+            console.error('Erro no listener em tempo real:', error);
+            setCloudStatus('Erro de Conexão Nuvem', false);
           }
         );
 
-        // 3. Ao voltar a ficar online no navegador, força leitura fresca do servidor
+        // 3. Reconexão automática ao voltar a internet
         window.addEventListener('online', async () => {
           setCloudStatus('Sincronizando...', false);
           try {
             const freshSnap = await getDocFromServer(sharedDocRef);
             if (freshSnap.exists()) {
-              applyIfNewer(freshSnap.data());
+              applyRemoteSnapshot(freshSnap.data());
             }
             setCloudStatus('Online • Tempo Real', true);
           } catch (e) {
-            console.error('Erro ao sincronizar após reconexão:', e);
+            console.error('Erro ao reconectar:', e);
           }
         });
 
@@ -1542,7 +1633,7 @@
         });
 
       } catch (err) {
-        console.error('Falha ao inicializar nuvem:', err);
+        console.error('Falha crítica ao iniciar nuvem:', err);
         setCloudStatus('Modo Local', false);
       }
     }
@@ -1950,7 +2041,7 @@
       syncHistoricoMensalRetention();
     }
 
-    function saveState() {
+    function saveState(deltaMov = null) {
       syncHistoricoMensalRetention();
       persistLocalCache();
       if (window.__cloudSync && window.__cloudSync.enabled && typeof window.__cloudSync.saveToCloud === 'function') {
@@ -1958,7 +2049,7 @@
           ...state,
           tiposPatrimonio: TIPOS_PATRIMONIO,
           operadoresCadastrados: getPersistableUsersMap()
-        });
+        }, deltaMov);
       }
     }
 
@@ -2547,6 +2638,10 @@
       const etq = state.etiquetas.find(i => i.codigo === codigo);
       const dem = state.demais.find(i => i.codigo === codigo);
 
+      const nowMs = Date.now();
+      const idMovUnico = `${nowMs}-${Math.random().toString(36).slice(2, 8)}`;
+      const deltaMov = { codigo, operacao, quantidade: qtd };
+
       if (etq) {
         if (operacao === 'Retirada' && Number(etq.qtdCaixas) < qtd) {
           showToast(`Estoque insuficiente para ${codigo}. Saldo atual: ${etq.qtdCaixas} cx.`, 'error');
@@ -2554,6 +2649,8 @@
         }
         etq.qtdCaixas = operacao === 'Inclusão' ? Number(etq.qtdCaixas) + qtd : Number(etq.qtdCaixas) - qtd;
         state.historico.unshift({
+          idMov: idMovUnico,
+          timestampMs: nowMs,
           dataHora: formatNowBR(),
           mesRef: getCurrentMonthKey(),
           codigo: etq.codigo,
@@ -2574,6 +2671,8 @@
         }
         dem.embalagem = operacao === 'Inclusão' ? Number(dem.embalagem) + qtd : Number(dem.embalagem) - qtd;
         state.historico.unshift({
+          idMov: idMovUnico,
+          timestampMs: nowMs,
           dataHora: formatNowBR(),
           mesRef: getCurrentMonthKey(),
           codigo: dem.codigo,
@@ -2589,7 +2688,7 @@
         });
       }
 
-      saveState();
+      saveState(deltaMov);
       refreshAll();
       document.getElementById('mov-quantidade').value = '';
       updateMovPreview();
