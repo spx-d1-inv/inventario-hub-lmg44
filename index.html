@@ -1369,16 +1369,41 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
     import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import {
+      initializeFirestore,
+      persistentLocalCache,
+      persistentMultipleTabManager,
+      doc,
+      getDocFromServer,
+      setDoc,
+      onSnapshot
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     window.__cloudSync = {
       enabled: false,
-      saveToCloud: null
+      saveToCloud: null,
+      lastAppliedUpdatedAt: 0
     };
+
+    function parseTimestamp(isoStr) {
+      if (!isoStr) return 0;
+      const t = Date.parse(isoStr);
+      return Number.isNaN(t) ? 0 : t;
+    }
 
     async function initCloudSync() {
       const statusLabel = document.getElementById('cloud-sync-label');
       const statusBox = document.getElementById('cloud-sync-status');
+
+      const setCloudStatus = (text, isOnline) => {
+        if (statusBox) statusBox.classList.remove('hidden');
+        if (statusLabel) statusLabel.textContent = text;
+        if (statusBox) {
+          statusBox.className = isOnline
+            ? 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+            : 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30';
+        }
+      };
 
       try {
         const embeddedFirebaseConfig = {
@@ -1396,7 +1421,11 @@
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'hub-lmg-44-default';
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
+
+        // Cache persistente multi-abas com sincronização real de servidor
+        const db = initializeFirestore(app, {
+          localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+        });
 
         if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
           await signInWithCustomToken(auth, __initial_auth_token);
@@ -1404,14 +1433,38 @@
           await signInAnonymously(auth);
         }
 
-        if (!auth.currentUser) return;
+        if (!auth.currentUser) {
+          setCloudStatus('Modo Local (Sem Autenticação)', false);
+          return;
+        }
 
         const sharedDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'inventario_hub_lmg_44', 'estado_atual_limpo');
         let isApplyingRemote = false;
 
+        const applyIfNewer = (cloudData) => {
+          if (!cloudData || !Array.isArray(cloudData.etiquetas) || !Array.isArray(cloudData.demais)) return;
+          const remoteTs = parseTimestamp(cloudData.updatedAt);
+          if (remoteTs > 0 && remoteTs < window.__cloudSync.lastAppliedUpdatedAt) {
+            return;
+          }
+          if (remoteTs > 0) {
+            window.__cloudSync.lastAppliedUpdatedAt = remoteTs;
+          }
+          isApplyingRemote = true;
+          try {
+            if (typeof window.applyExternalState === 'function') {
+              window.applyExternalState(cloudData);
+            }
+          } finally {
+            isApplyingRemote = false;
+          }
+        };
+
         window.__cloudSync.enabled = true;
         window.__cloudSync.saveToCloud = async (currentState) => {
           if (!auth.currentUser || isApplyingRemote) return;
+          const nowIso = new Date().toISOString();
+          window.__cloudSync.lastAppliedUpdatedAt = parseTimestamp(nowIso);
           try {
             await setDoc(sharedDocRef, {
               etiquetas: currentState.etiquetas || [],
@@ -1421,57 +1474,76 @@
               historico: currentState.historico || [],
               mesesHistorico: currentState.mesesHistorico || [],
               operadoresCadastrados: currentState.operadoresCadastrados || {},
-              updatedAt: new Date().toISOString()
+              updatedAt: nowIso
             });
+            setCloudStatus('Online • Tempo Real', true);
           } catch (err) {
             console.error('Erro ao salvar estado compartilhado:', err);
+            setCloudStatus('Falha ao Sincronizar', false);
             if (typeof showToast === 'function') {
-              showToast('Erro ao sincronizar com a nuvem: verifique as regras do Firestore.', 'error');
+              showToast('Erro ao salvar na nuvem. Verifique sua conexão.', 'error');
             }
           }
         };
 
-        // 1. Carrega primeiro o estado existente na nuvem antes de iniciar o listener
-        const initialSnap = await getDoc(sharedDocRef);
-        if (initialSnap.exists()) {
-          const cloudData = initialSnap.data();
-          if (cloudData && Array.isArray(cloudData.etiquetas) && Array.isArray(cloudData.demais)) {
-            isApplyingRemote = true;
-            if (typeof window.applyExternalState === 'function') {
-              window.applyExternalState(cloudData);
-            }
-            isApplyingRemote = false;
+        // 1. Busca obrigatoriamente do SERVIDOR ao abrir (ignora cache velho)
+        try {
+          const serverSnap = await getDocFromServer(sharedDocRef);
+          if (serverSnap.exists()) {
+            applyIfNewer(serverSnap.data());
+            setCloudStatus('Online • Tempo Real', true);
+          } else if (typeof window.getCurrentInventoryState === 'function') {
+            await window.__cloudSync.saveToCloud(window.getCurrentInventoryState());
           }
-        } else if (typeof window.getCurrentInventoryState === 'function') {
-          await window.__cloudSync.saveToCloud(window.getCurrentInventoryState());
+        } catch (serverErr) {
+          console.warn('Não foi possível ler diretamente do servidor na inicialização:', serverErr);
         }
 
-        // 2. Escuta alterações em tempo real de qualquer computador conectado
+        // 2. Escuta alterações em tempo real (incluindo metadados de cache/servidor)
         onSnapshot(
           sharedDocRef,
+          { includeMetadataChanges: true },
           (snapshot) => {
-            if (statusLabel) statusLabel.textContent = 'Online • Tempo Real';
-            if (statusBox) statusBox.classList.remove('hidden');
+            const isFromCache = snapshot.metadata.fromCache;
+            const hasPending = snapshot.metadata.hasPendingWrites;
 
-            if (snapshot.exists() && !snapshot.metadata.hasPendingWrites) {
-              const cloudData = snapshot.data();
-              if (cloudData && Array.isArray(cloudData.etiquetas) && Array.isArray(cloudData.demais)) {
-                isApplyingRemote = true;
-                if (typeof window.applyExternalState === 'function') {
-                  window.applyExternalState(cloudData);
-                }
-                isApplyingRemote = false;
-              }
+            if (!navigator.onLine || (isFromCache && !hasPending)) {
+              setCloudStatus('Reconectando à Nuvem...', false);
+            } else {
+              setCloudStatus('Online • Tempo Real', true);
+            }
+
+            if (snapshot.exists() && !isFromCache && !hasPending) {
+              applyIfNewer(snapshot.data());
             }
           },
           (error) => {
             console.error('Erro na sincronização em tempo real:', error);
-            if (statusLabel) statusLabel.textContent = 'Offline (Modo Local)';
+            setCloudStatus('Offline (Modo Local)', false);
           }
         );
+
+        // 3. Ao voltar a ficar online no navegador, força leitura fresca do servidor
+        window.addEventListener('online', async () => {
+          setCloudStatus('Sincronizando...', false);
+          try {
+            const freshSnap = await getDocFromServer(sharedDocRef);
+            if (freshSnap.exists()) {
+              applyIfNewer(freshSnap.data());
+            }
+            setCloudStatus('Online • Tempo Real', true);
+          } catch (e) {
+            console.error('Erro ao sincronizar após reconexão:', e);
+          }
+        });
+
+        window.addEventListener('offline', () => {
+          setCloudStatus('Offline (Modo Local)', false);
+        });
+
       } catch (err) {
         console.error('Falha ao inicializar nuvem:', err);
-        if (statusLabel) statusLabel.textContent = 'Modo Local';
+        setCloudStatus('Modo Local', false);
       }
     }
 
@@ -1836,15 +1908,51 @@
     }
 
     // =========================================================================
-    // 4. PERSISTÊNCIA EM MEMÓRIA + SINCRONIZAÇÃO NA NUVEM
+    // 4. PERSISTÊNCIA LOCAL + SINCRONIZAÇÃO NA NUVEM
     // =========================================================================
+    const STORAGE_KEY_INVENTORY_CACHE = 'hub_lmg44_inventory_state_cache_v1';
+
+    function persistLocalCache() {
+      try {
+        localStorage.setItem(STORAGE_KEY_INVENTORY_CACHE, JSON.stringify({
+          etiquetas: state.etiquetas,
+          demais: state.demais,
+          patrimonial: state.patrimonial,
+          historico: state.historico,
+          mesesHistorico: state.mesesHistorico
+        }));
+      } catch (e) {
+        console.warn('Não foi possível salvar cache local:', e);
+      }
+    }
+
     function loadState() {
+      try {
+        const cachedRaw = localStorage.getItem(STORAGE_KEY_INVENTORY_CACHE);
+        if (cachedRaw) {
+          const parsed = JSON.parse(cachedRaw);
+          if (parsed && Array.isArray(parsed.etiquetas) && Array.isArray(parsed.demais)) {
+            state = {
+              etiquetas: parsed.etiquetas,
+              demais: parsed.demais,
+              patrimonial: Array.isArray(parsed.patrimonial) ? parsed.patrimonial : JSON.parse(JSON.stringify(INITIAL_DATA.patrimonial)),
+              historico: Array.isArray(parsed.historico) ? parsed.historico : [],
+              mesesHistorico: Array.isArray(parsed.mesesHistorico) ? parsed.mesesHistorico : []
+            };
+            syncHistoricoMensalRetention();
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Erro ao ler cache local, usando dados iniciais:', e);
+      }
       state = JSON.parse(JSON.stringify(INITIAL_DATA));
       syncHistoricoMensalRetention();
     }
 
     function saveState() {
       syncHistoricoMensalRetention();
+      persistLocalCache();
       if (window.__cloudSync && window.__cloudSync.enabled && typeof window.__cloudSync.saveToCloud === 'function') {
         window.__cloudSync.saveToCloud({
           ...state,
@@ -1883,6 +1991,7 @@
       state.historico = cloudData.historico || [];
       state.mesesHistorico = cloudData.mesesHistorico || [];
       syncHistoricoMensalRetention();
+      persistLocalCache();
       refreshAll();
     };
 
