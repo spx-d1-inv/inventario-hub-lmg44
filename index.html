@@ -1301,8 +1301,8 @@
 
   <!-- Integração em Nuvem Multiusuário (Long-Polling HTTPS + Presença + Transação Atômica) -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-auth.js";
     import {
       initializeFirestore,
       memoryLocalCache,
@@ -1313,7 +1313,7 @@
       onSnapshot,
       collection,
       deleteDoc
-    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-firestore.js";
 
     const CLIENT_SESSION_ID = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -1390,7 +1390,7 @@
           experimentalForceLongPolling: true,
           useFetchStreams: false,
           localCache: memoryLocalCache()
-        });
+        }, 'default');
 
         try {
           if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
